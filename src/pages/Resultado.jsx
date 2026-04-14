@@ -70,8 +70,8 @@ export default function Resultado({ onGuardado }) {
 
       // Espera 2s para que Apps Script escriba en Sheets, luego navega a Clasificación
       setTimeout(() => { onGuardado?.(); }, 2000);
-    } catch {
-      setMsg("Error de red al enviar. Inténtalo de nuevo.");
+    } catch (err) {
+      setMsg(err?.message || "Error de red al enviar. Inténtalo de nuevo.");
       setMsgType("error");
     } finally {
       setSending(false);

@@ -62,10 +62,9 @@ function ScoreModal({ open, onClose, match, cat, onSaved }) {
         stbl: showSTB ? n(stbl) : null,
         stbv: showSTB ? n(stbv) : null,
       });
-      clearLocalCache();
       onSaved();
-    } catch {
-      setMsg("Error de red al enviar. Inténtalo de nuevo.");
+    } catch (err) {
+      setMsg(err?.message || "Error de red al enviar. Inténtalo de nuevo.");
     } finally {
       setSending(false);
     }
@@ -282,7 +281,7 @@ export default function Playoffs() {
         setLoading(false);
       })
       .catch(err => {
-        if (err.name !== "AbortError") { setError("Error cargando datos"); setLoading(false); }
+        if (err.name !== "AbortError") { setError(err?.message || "Error cargando datos"); setLoading(false); }
       });
   }
 

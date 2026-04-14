@@ -389,7 +389,7 @@ function ModalAñadir({ showModal, setShowModal, onGuardar }) {
     if (!t || !categoria || !grupo) { setError("Completa todos los campos"); return; }
     setSending(true); setError(null);
     try { await onGuardar(t, categoria, grupo); setShowModal(false); }
-    catch { setError("Error al añadir el jugador."); setSending(false); }
+    catch (err) { setError(err?.message || "Error al añadir el jugador."); setSending(false); }
   }
 
   if (!showModal) return null;
@@ -467,7 +467,7 @@ export default function Jugadores({ irAPerfil }) {
     setLoading(true); setError(null);
     fetchPartidos(controller.signal)
       .then(json => { setPartidos(Array.isArray(json) ? json : []); setLoading(false); })
-      .catch(err  => { if (err.name !== "AbortError") { setError("Error cargando datos"); setLoading(false); } });
+      .catch(err  => { if (err.name !== "AbortError") { setError(err?.message || "Error cargando datos"); setLoading(false); } });
     return () => controller.abort();
   }, []);
 

@@ -98,7 +98,7 @@ export default function Partidos() {
         setLoading(false);
       })
       .catch(err => {
-        if (err.name !== "AbortError") { setError("Error cargando partidos"); setLoading(false); }
+        if (err.name !== "AbortError") { setError(err?.message || "Error cargando partidos"); setLoading(false); }
       });
     return () => controller.abort();
   }, []);

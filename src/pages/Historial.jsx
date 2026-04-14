@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchPartidos, fetchConfig, registrarResultado, clearLocalCache } from "../api.js";
+import { fetchPartidos, fetchConfig, registrarResultado } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcClasificacion } from "../engine.js";
 import { validarSets } from "../utils/validarSets.js";
@@ -52,12 +52,11 @@ function ResultadoModal({ grupos, open, onClose, onGuardado }) {
         stbl: showSTB ? n(stbl) : null,
         stbv: showSTB ? n(stbv) : null,
       });
-      clearLocalCache();
       setMsg("¡Resultado registrado correctamente!");
       setMsgType("success");
       setTimeout(() => { onGuardado(); }, 1500);
-    } catch {
-      setMsg("Error de red al enviar. Inténtalo de nuevo.");
+    } catch (err) {
+      setMsg(err?.message || "Error de red al enviar. Inténtalo de nuevo.");
       setMsgType("error");
     } finally {
       setSending(false);
@@ -285,7 +284,7 @@ export default function Historial({ irAClasificacion }) {
         setLoading(false);
       })
       .catch(err => {
-        if (err.name !== "AbortError") { setError("Error cargando datos"); setLoading(false); }
+        if (err.name !== "AbortError") { setError(err?.message || "Error cargando datos"); setLoading(false); }
       });
     return () => controller.abort();
   }, []);

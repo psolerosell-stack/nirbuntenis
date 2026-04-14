@@ -120,7 +120,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         setLoading(false);
       })
       .catch(err => {
-        if (err.name !== "AbortError") { setError("Error cargando datos"); setLoading(false); }
+        if (err.name !== "AbortError") { setError(err?.message || "Error cargando datos"); setLoading(false); }
       });
 
     return () => controller.abort();
