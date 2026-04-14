@@ -293,13 +293,15 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
         <>
           {/* Headers jugadores */}
           <div className="cmp-table-header">
-            <div style={{ flex: 1 }} />
-            <div className="cmp-col-header">
+            <div className="cmp-col-header" style={{ alignItems: "flex-start" }}>
               <div className="cmp-avatar" style={{ background: colorA }}>{initials(statsA.nombre)}</div>
               <div className="cmp-col-nombre">{statsA.nombre}</div>
               <span className="grupo-pill-mini" style={{ background: colorA }}>{statsA.grupo}</span>
             </div>
-            <div className="cmp-col-header">
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", letterSpacing: "0.05em" }}>VS</span>
+            </div>
+            <div className="cmp-col-header" style={{ alignItems: "flex-end" }}>
               <div className="cmp-avatar" style={{ background: colorB }}>{initials(statsB.nombre)}</div>
               <div className="cmp-col-nombre">{statsB.nombre}</div>
               <span className="grupo-pill-mini" style={{ background: colorB }}>{statsB.grupo}</span>
@@ -313,14 +315,16 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
               const winA = vA > vB, winB = vB > vA;
               return (
                 <div className="cmp-row" key={label}>
-                  <span className="cmp-row-label">{label}</span>
                   <span className="cmp-row-val" style={{
+                    textAlign: "right",
                     color: winA ? colorA : "var(--text2)",
                     fontWeight: winA ? 700 : 400,
                   }}>
-                    {fn(statsA)}{winA ? " ●" : ""}
+                    {winA ? "● " : ""}{fn(statsA)}
                   </span>
+                  <span className="cmp-row-label">{label}</span>
                   <span className="cmp-row-val" style={{
+                    textAlign: "left",
                     color: winB ? colorB : "var(--text2)",
                     fontWeight: winB ? 700 : 400,
                   }}>

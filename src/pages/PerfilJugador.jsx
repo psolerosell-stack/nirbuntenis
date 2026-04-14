@@ -165,35 +165,6 @@ export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
             ))}
           </div>
 
-          {/* NirbunScore detalle */}
-          <div className="perfil-score-card">
-            <div className="section-title" style={{ marginBottom: 10 }}>NirbunScore</div>
-            <div className="perfil-score-total-row">
-              <span className="perfil-score-total-num" style={{ color: scCol }}>{s10}</span>
-              <span style={{ fontSize: 12, color: "var(--text2)", marginLeft: 4 }}>/ 10</span>
-            </div>
-            <div className="perfil-score-main-bar-wrap">
-              <div
-                className="perfil-score-main-bar"
-                style={{ width: `${detalle.total}%`, background: scCol }}
-              />
-            </div>
-            <div style={{ marginTop: 14 }}>
-              {Object.entries(detalle.factores).map(([key, fac]) => (
-                <div className="perfil-factor-row" key={key}>
-                  <span className="perfil-factor-label">{FACTOR_LABELS[key] || key}</span>
-                  <div className="perfil-factor-bar-wrap">
-                    <div
-                      className="perfil-factor-bar"
-                      style={{ width: `${(fac.contribucion / fac.max) * 100}%`, background: scCol }}
-                    />
-                  </div>
-                  <span className="perfil-factor-val">{fac.contribucion}/{fac.max}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Forma reciente */}
           <div className="perfil-section-card">
             <div className="section-title" style={{ marginBottom: 10 }}>Forma reciente</div>
@@ -222,33 +193,6 @@ export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
                     );
                   })}
               </div>
-            )}
-          </div>
-
-          {/* Ultimos partidos */}
-          <div className="perfil-section-card">
-            <div className="section-title" style={{ marginBottom: 10 }}>Últimos partidos</div>
-            {mis.length === 0 ? (
-              <div className="empty-state">Sin partidos jugados aún</div>
-            ) : (
-              [...mis]
-                .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
-                .slice(0, 5)
-                .map((p, i) => {
-                  const esLocal = p.local === jugador;
-                  const rival   = esLocal ? p.visitante : p.local;
-                  const { ganador } = calcPuntos(p);
-                  const gano    = ganador === jugador;
-                  const score   = scorePartido(p, jugador);
-                  return (
-                    <div className="perfil-match-row" key={i}>
-                      <span className={`perfil-match-badge ${gano ? "win" : "loss"}`}>{gano ? "W" : "L"}</span>
-                      <span className="perfil-match-rival">{rival}</span>
-                      <span className="perfil-match-score">{score}</span>
-                      {p.fecha && <span className="perfil-match-fecha">{formatFecha(p.fecha)}</span>}
-                    </div>
-                  );
-                })
             )}
           </div>
 

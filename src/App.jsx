@@ -27,10 +27,15 @@ const TABS = [
     id: "partidos",
     label: "Partidos",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        <line x1="2" y1="12" x2="22" y2="12" />
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="5.5" cy="5.5" r="4.5"/>
+        <line x1="3" y1="5.5" x2="8" y2="5.5"/>
+        <line x1="5.5" y1="3" x2="5.5" y2="8"/>
+        <line x1="9" y1="9" x2="20" y2="20"/>
+        <circle cx="18.5" cy="5.5" r="4.5"/>
+        <line x1="16" y1="5.5" x2="21" y2="5.5"/>
+        <line x1="18.5" y1="3" x2="18.5" y2="8"/>
+        <line x1="15" y1="9" x2="4" y2="20"/>
       </svg>
     ),
   },
