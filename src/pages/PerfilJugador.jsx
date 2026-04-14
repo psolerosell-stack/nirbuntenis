@@ -63,13 +63,87 @@ function initials(nombre) {
   return nombre.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase();
 }
 
-const FACTOR_LABELS = {
-  categoria:    "Categoría",
-  winrate:      "Winrate",
-  sets:         "Sets",
-  juegos:       "Juegos",
-  consistencia: "Consistencia",
-};
+// ── Evolución NirbunScore ────────────────────────────────────────────────────
+function calcEvolucion(jugador, todosPartidos, categoria) {
+  const mis = todosPartidos
+    .filter(p => p.estado === "jugado" && (p.local === jugador || p.visitante === jugador))
+    .sort((a, b) => String(a.fecha || "").localeCompare(String(b.fecha || "")));
+  return mis.map((_, i) => {
+    const det = calcScoreDetalle(jugador, mis.slice(0, i + 1), categoria);
+    return { fecha: mis[i].fecha, score: Math.round(((det.total / 100) * 9 + 1) * 10) / 10 };
+  });
+}
+
+function EvolChart({ puntos, color }) {
+  const W = 300, H = 110;
+  const PAD = { top: 22, right: 16, bottom: 18, left: 30 };
+  const cw = W - PAD.left - PAD.right, ch = H - PAD.top - PAD.bottom;
+
+  const scores = puntos.map(p => p.score);
+  const lo = Math.max(1,  Math.floor(Math.min(...scores) - 0.5));
+  const hi = Math.min(10, Math.ceil (Math.max(...scores) + 0.5));
+  const rng = hi - lo || 1;
+
+  const xFn = i => PAD.left + (puntos.length < 2 ? cw / 2 : (i / (puntos.length - 1)) * cw);
+  const yFn = v => PAD.top  + ch - ((v - lo) / rng) * ch;
+
+  const linePts = puntos.map((p, i) => `${xFn(i)},${yFn(p.score)}`).join(" ");
+  const areaPts = `${xFn(0)},${PAD.top + ch} ${linePts} ${xFn(puntos.length - 1)},${PAD.top + ch}`;
+
+  const gridVals = [];
+  for (let v = Math.ceil(lo); v <= Math.floor(hi); v++) gridVals.push(v);
+
+  const meses = ["","ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  function fmtFecha(f) {
+    if (!f) return "";
+    const p = String(f).split("-");
+    return p.length >= 3 ? `${parseInt(p[2])} ${meses[parseInt(p[1])] || ""}` : f;
+  }
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", overflow: "visible" }}>
+      {/* Grid */}
+      {gridVals.map(v => (
+        <g key={v}>
+          <line x1={PAD.left} y1={yFn(v)} x2={PAD.left + cw} y2={yFn(v)}
+            stroke="var(--border)" strokeWidth="0.8" strokeDasharray="3,3" />
+          <text x={PAD.left - 5} y={yFn(v) + 3.5} textAnchor="end" fontSize="8" fill="var(--text2)">{v}</text>
+        </g>
+      ))}
+      {/* Area + line */}
+      <polygon points={areaPts} fill={color} opacity="0.13" />
+      <polyline points={linePts} fill="none" stroke={color} strokeWidth="2.2"
+        strokeLinecap="round" strokeLinejoin="round" />
+      {/* Puntos + labels */}
+      {puntos.map((p, i) => {
+        const cx = xFn(i), cy = yFn(p.score);
+        const showLabel = puntos.length <= 6 || i === 0 || i === puntos.length - 1;
+        const ancla = i === 0 ? "start" : i === puntos.length - 1 ? "end" : "middle";
+        return (
+          <g key={i}>
+            <circle cx={cx} cy={cy} r="3.5" fill={color} />
+            {showLabel && (
+              <text x={cx} y={cy - 7} textAnchor={ancla} fontSize="8.5" fill={color} fontWeight="700">
+                {p.score}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      {/* Fechas X: primer y último */}
+      {puntos.length >= 2 && (
+        <>
+          <text x={xFn(0)} y={H - 2} textAnchor="start" fontSize="7.5" fill="var(--text2)">
+            {fmtFecha(puntos[0].fecha)}
+          </text>
+          <text x={xFn(puntos.length - 1)} y={H - 2} textAnchor="end" fontSize="7.5" fill="var(--text2)">
+            {fmtFecha(puntos[puntos.length - 1].fecha)}
+          </text>
+        </>
+      )}
+    </svg>
+  );
+}
 
 export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
   const { grupos } = useGrupos();
@@ -121,6 +195,7 @@ export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
   const numTemporadas = (pal.temporadas ?? [temporadaActual]).length;
 
   const { nemesis, victima } = calcRivalidades(jugador, partidos);
+  const evolucion = useMemo(() => calcEvolucion(jugador, partidos, categoria), [jugador, partidos, categoria]);
 
   const catColor = CAT_COLOR[categoria] || "#888";
   const s10      = to10(detalle.total);
@@ -164,6 +239,20 @@ export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
               </div>
             ))}
           </div>
+
+          {/* Evolución NirbunScore */}
+          {evolucion.length >= 1 && (
+            <div className="perfil-section-card">
+              <div className="section-title" style={{ marginBottom: 12 }}>Evolución NirbunScore</div>
+              {evolucion.length < 2 ? (
+                <div style={{ fontSize: 12, color: "var(--text2)", textAlign: "center", padding: "8px 0" }}>
+                  Necesitas al menos 2 partidos jugados
+                </div>
+              ) : (
+                <EvolChart puntos={evolucion} color={scCol} />
+              )}
+            </div>
+          )}
 
           {/* Forma reciente */}
           <div className="perfil-section-card">
