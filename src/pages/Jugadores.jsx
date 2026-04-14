@@ -260,7 +260,7 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
     { label: "NirbunScore", fn: s => to10(s.score), hi: "score" },
     { label: "Winrate",     fn: s => s.pj > 0 ? `${s.winPct}%` : "—", hi: "winPct" },
     { label: "% Sets gan.", fn: s => s.pj > 0 ? `${s.setPct}%` : "—", hi: "setPct" },
-    { label: "Efic. juegos",fn: s => s.pj > 0 ? `${s.jPct}%` : "—",  hi: "jPct" },
+    { label: "% Juegos gan.",fn: s => s.pj > 0 ? `${s.jPct}%` : "—",  hi: "jPct" },
     { label: "Partidos",    fn: s => s.pj, hi: "pj" },
   ];
 
@@ -291,25 +291,25 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
 
       {ambos && (
         <>
-          {/* Headers jugadores */}
-          <div className="cmp-table-header">
-            <div className="cmp-col-header" style={{ alignItems: "flex-start" }}>
-              <div className="cmp-avatar" style={{ background: colorA }}>{initials(statsA.nombre)}</div>
-              <div className="cmp-col-nombre">{statsA.nombre}</div>
-              <span className="grupo-pill-mini" style={{ background: colorA }}>{statsA.grupo}</span>
-            </div>
-            <div style={{ flex: 1.4, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", letterSpacing: "0.05em" }}>VS</span>
-            </div>
-            <div className="cmp-col-header" style={{ alignItems: "flex-end" }}>
-              <div className="cmp-avatar" style={{ background: colorB }}>{initials(statsB.nombre)}</div>
-              <div className="cmp-col-nombre">{statsB.nombre}</div>
-              <span className="grupo-pill-mini" style={{ background: colorB }}>{statsB.grupo}</span>
-            </div>
-          </div>
-
-          {/* Filas de stats */}
+          {/* Stats con nombres integrados */}
           <div className="cmp-section-card">
+            {/* Header con nombres justo encima de las stats */}
+            <div className="cmp-row" style={{ borderBottom: "1px solid var(--border)", paddingBottom: 12, marginBottom: 4 }}>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                <div className="cmp-avatar" style={{ background: colorA }}>{initials(statsA.nombre)}</div>
+                <div className="cmp-col-nombre" style={{ textAlign: "left" }}>{statsA.nombre}</div>
+                <span className="grupo-pill-mini" style={{ background: colorA }}>{statsA.grupo}</span>
+              </div>
+              <div style={{ flex: 1.4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", letterSpacing: "0.05em" }}>VS</span>
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                <div className="cmp-avatar" style={{ background: colorB }}>{initials(statsB.nombre)}</div>
+                <div className="cmp-col-nombre" style={{ textAlign: "right" }}>{statsB.nombre}</div>
+                <span className="grupo-pill-mini" style={{ background: colorB }}>{statsB.grupo}</span>
+              </div>
+            </div>
+
             {FILAS.map(({ label, fn, hi }) => {
               const vA = statsA[hi], vB = statsB[hi];
               const winA = vA > vB, winB = vB > vA;
