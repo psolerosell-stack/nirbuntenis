@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchPartidos, registrarResultado, clearLocalCache } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcPlayoffs } from "../engine.js";
+import { validarSets } from "../utils/validarSets.js";
 
 const CAT_COLOR = {
   Platino: "#4F81BD",
@@ -27,38 +28,6 @@ function normalizarEngine(p) {
   };
 }
 
-function validarSets(s1l, s1v, s2l, s2v, stbl, stbv) {
-  const errors = [];
-  function validSet(a, b, label) {
-    if (a == null || b == null || isNaN(a) || isNaN(b)) { errors.push(`${label}: introduce ambos valores`); return; }
-    if (a < 0 || b < 0) { errors.push(`${label}: valores negativos`); return; }
-    const max = Math.max(a, b);
-    const min = Math.min(a, b);
-    if (max < 6) { errors.push(`${label}: el ganador necesita al menos 6 juegos`); return; }
-    if (max === 6 && min > 4) { errors.push(`${label}: si gana 6 el otro no puede tener más de 4`); return; }
-    if (max === 7 && min !== 5 && min !== 6) { errors.push(`${label}: 7-x solo válido con x=5 o x=6`); return; }
-    if (max > 7) { errors.push(`${label}: máximo 7 juegos en un set normal`); return; }
-    if (a === b) { errors.push(`${label}: no puede haber empate en un set`); return; }
-  }
-  validSet(s1l, s1v, "Set 1");
-  validSet(s2l, s2v, "Set 2");
-  if (errors.length > 0) return errors;
-  const w1 = s1l > s1v ? "l" : "v";
-  const w2 = s2l > s2v ? "l" : "v";
-  const needsSTB = w1 !== w2;
-  if (needsSTB) {
-    if (stbl == null || stbv == null || isNaN(stbl) || isNaN(stbv)) {
-      errors.push("STB requerido: los sets están 1-1");
-    } else if (stbl === stbv) {
-      errors.push("STB: no puede haber empate");
-    } else if (Math.max(stbl, stbv) < 10) {
-      errors.push("STB: el ganador necesita al menos 10 puntos");
-    } else if (Math.abs(stbl - stbv) < 2) {
-      errors.push("STB: diferencia mínima de 2 puntos");
-    }
-  }
-  return errors;
-}
 
 function ScoreModal({ open, onClose, match, cat, onSaved }) {
   const [s1l, setS1l] = useState("");
@@ -75,6 +44,7 @@ function ScoreModal({ open, onClose, match, cat, onSaved }) {
   const showSTB = w1 != null && w2 != null && w1 !== w2;
 
   async function handleGuardar() {
+    if (sending) return; // guard contra doble envío
     setMsg(null);
     const errors = validarSets(n(s1l), n(s1v), n(s2l), n(s2v), showSTB ? n(stbl) : null, showSTB ? n(stbv) : null);
     if (errors.length > 0) { setMsg(errors.join(" · ")); return; }
