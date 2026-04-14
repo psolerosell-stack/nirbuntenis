@@ -60,7 +60,7 @@ function validarSets(s1l, s1v, s2l, s2v, stbl, stbv) {
   return errors;
 }
 
-function ScoreModal({ match, cat, onClose, onSaved }) {
+function ScoreModal({ open, onClose, match, cat, onSaved }) {
   const [s1l, setS1l] = useState("");
   const [s1v, setS1v] = useState("");
   const [s2l, setS2l] = useState("");
@@ -101,9 +101,11 @@ function ScoreModal({ match, cat, onClose, onSaved }) {
     }
   }
 
+  if (!open) return null;
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
         <div className="modal-title">
           {match.tipo === "ascenso" ? "Playoff Ascenso" : "Playoff Descenso"}
         </div>
@@ -113,7 +115,9 @@ function ScoreModal({ match, cat, onClose, onSaved }) {
           <span style={{ opacity: 0.7 }}>V:</span> {match.j2}
         </div>
 
-        {msg && <div className="alert alert-error">{msg}</div>}
+        {msg && (
+          <div className="alert alert-error">{msg}</div>
+        )}
 
         <div className="form-group">
           <label className="form-label">Set 1</label>
@@ -177,7 +181,7 @@ function PlayoffMatchCard({ match, cat, onRegistrar }) {
   const tipoColor = match.tipo === "ascenso" ? "#558b2f" : "#e65100";
 
   return (
-    <div className={`playoff-match-card ${match.tipo}`}>
+    <div className={`playoff-match-card ${match.tipo === "ascenso" ? "ascenso" : "descenso"}`}>
       <div className="playoff-match-header" style={{ color: tipoColor }}>
         {match.tipo === "ascenso" ? "PO↑" : "PO↓"} {tipoLabel}
       </div>
@@ -206,46 +210,42 @@ function PlayoffMatchCard({ match, cat, onRegistrar }) {
       )}
 
       {!jugado && (
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-primary" onClick={() => onRegistrar(match)}>
-            Registrar resultado
-          </button>
-        </div>
+        <button className="btn-primary" style={{ width: "100%", marginTop: 12 }} onClick={() => onRegistrar(match)}>
+          Registrar resultado
+        </button>
       )}
     </div>
   );
 }
 
 function CatCard({ data, onRegistrar }) {
-  const { cat, expA, expB, jugadosA, jugadosB, completo, clasiA, clasiB, matches, promovidos, descendidos } = data;
+  const { cat, expA, expB, jugadosA, jugadosB, completo, matches, promovidos, descendidos } = data;
   const color = CAT_COLOR[cat];
   const pctA = expA > 0 ? Math.round((jugadosA / expA) * 100) : 0;
   const pctB = expB > 0 ? Math.round((jugadosB / expB) * 100) : 0;
 
   return (
-    <div className="playoff-cat-card">
+    <div className="card" style={{ marginBottom: 16 }}>
       <div className="playoff-cat-header" style={{ borderLeftColor: color }}>
-        <span className="playoff-cat-title" style={{ color }}>
-          <span className="bracket-dot" style={{ background: color, display: "inline-block", width: 9, height: 9, borderRadius: "50%", marginRight: 6 }} />
+        <div className="playoff-cat-title">
+          <span className="bracket-dot" style={{ background: color, marginRight: 6 }} />
           {cat}
-        </span>
-        {completo && (
-          <span className="playoff-completo-badge">Fase regular completada</span>
-        )}
+        </div>
+        {completo && <span className="playoff-completo-badge">Fase regular completada</span>}
       </div>
 
       <div className="playoff-progreso">
         <div className="playoff-prog-row">
           <span className="playoff-prog-label">Grupo A</span>
-          <div className="progreso-bar" style={{ flex: 1 }}>
-            <div className="progreso-fill" style={{ width: `${pctA}%`, background: color }} />
+          <div className="progreso-bar" style={{ flex: 1, margin: "0 8px" }}>
+            <div className="progreso-fill" style={{ width: pctA + "%" }}></div>
           </div>
           <span className="playoff-prog-num">{jugadosA}/{expA}</span>
         </div>
         <div className="playoff-prog-row">
           <span className="playoff-prog-label">Grupo B</span>
-          <div className="progreso-bar" style={{ flex: 1 }}>
-            <div className="progreso-fill" style={{ width: `${pctB}%`, background: color }} />
+          <div className="progreso-bar" style={{ flex: 1, margin: "0 8px" }}>
+            <div className="progreso-fill" style={{ width: pctB + "%" }}></div>
           </div>
           <span className="playoff-prog-num">{jugadosB}/{expB}</span>
         </div>
@@ -338,26 +338,26 @@ export default function Playoffs() {
 
   return (
     <div className="page-content">
-      <div className="page-title">Playoffs</div>
+      <h1 className="page-title">Playoffs</h1>
 
-      {loading && <div className="empty-state">Cargando...</div>}
+      {loading && <div className="loading-text">Cargando...</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
       {!loading && !error && (
         <>
           {!alguno && (
-            <div className="empty-state" style={{ paddingBottom: 16 }}>
+            <div style={{ textAlign: "center", padding: "32px 0" }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🎾</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text1)", marginBottom: 6 }}>
                 Playoffs todavía no disponibles
               </div>
-              <div style={{ fontSize: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--text2)" }}>
                 Los playoffs se activan cuando todos los partidos de la fase regular de un grupo están jugados.
               </div>
             </div>
           )}
 
-          <div className="section-title">Progreso por categoría</div>
+          <p className="section-label">Progreso por categoría</p>
 
           {playoffsData.map(data => (
             <CatCard
@@ -371,9 +371,10 @@ export default function Playoffs() {
 
       {modal && (
         <ScoreModal
+          open={!!modal}
+          onClose={() => setModal(null)}
           match={modal.match}
           cat={modal.cat}
-          onClose={() => setModal(null)}
           onSaved={handleSaved}
         />
       )}

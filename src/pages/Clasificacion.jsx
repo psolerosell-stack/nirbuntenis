@@ -102,6 +102,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
       setGrupo(navTo.grupo);
     }
   }, [navTo?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [partidos, setPartidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -137,9 +138,10 @@ export default function Clasificacion({ navTo, irAPerfil }) {
 
   return (
     <div className="page-content">
-      <div className="page-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        Clasificación
-        <button onClick={handleRefresh} title="Actualizar datos" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text2)", padding: 4 }}>
+      {/* Header row: title + refresh button */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div className="page-title" style={{ margin: 0 }}>Clasificación</div>
+        <button className="btn-icon" onClick={handleRefresh} title="Actualizar datos">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -147,6 +149,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         </button>
       </div>
 
+      {/* Category pills */}
       <div className="pills">
         {CATEGORIAS.map(c => (
           <button
@@ -159,6 +162,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         ))}
       </div>
 
+      {/* Group tabs */}
       <div className="group-tabs" style={{ "--active-cat": color }}>
         {["A", "B"].map(g => (
           <button
@@ -171,7 +175,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         ))}
       </div>
 
-      {loading && <div className="empty-state" style={{ color }}>Cargando...</div>}
+      {loading && <div className="empty-state">Cargando...</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
       {!loading && !error && clasi.length === 0 && (
@@ -215,6 +219,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         </table>
       )}
 
+      {/* Legend */}
       <div style={{ marginTop: 14, fontSize: 11, color: "var(--text2)", lineHeight: 1.8 }}>
         <span className="badge badge-up">↑</span> Asciende &nbsp;
         <span className="badge badge-po-up">PO↑</span> Playoff Ascenso &nbsp;
@@ -225,50 +230,43 @@ export default function Clasificacion({ navTo, irAPerfil }) {
       {!loading && !error && (
         <>
           {/* ── Últimos resultados ── */}
-          <div style={{ marginTop: 24 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Últimos resultados</span>
-          </div>
-          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-            {(() => {
-              const jugados = partidos
-                .filter(p => p.grupo === grupoKey && p.estado === "jugado")
-                .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
-                .slice(0, 3);
-              if (jugados.length === 0) return (
-                <div style={{ color: "var(--text2)", fontSize: 13, padding: "10px 0" }}>
-                  No hay resultados aún en este grupo
+          <div className="section-title" style={{ marginTop: 20 }}>Últimos resultados</div>
+          {(() => {
+            const jugados = partidos
+              .filter(p => p.grupo === grupoKey && p.estado === "jugado")
+              .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+              .slice(0, 3);
+            if (jugados.length === 0) return (
+              <div className="empty-state">No hay resultados aún en este grupo</div>
+            );
+            return jugados.map((p, i) => {
+              const { winner, loser } = ganador(p);
+              return (
+                <div className="card" key={i}>
+                  <div className="match-row">
+                    <span
+                      className="match-player winner"
+                      style={{ color }}
+                      onClick={() => irAPerfil?.(winner)}
+                    >
+                      {winner}
+                    </span>
+                    <span className="match-score">{scoreTexto(p)}</span>
+                    <span
+                      className="match-player"
+                      style={{ textAlign: "right", color: "var(--text2)" }}
+                      onClick={() => irAPerfil?.(loser)}
+                    >
+                      {loser}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text2)", marginTop: 4 }}>
+                    {fechaRelativa(p.fecha)}
+                  </div>
                 </div>
               );
-              return jugados.map((p, i) => {
-                const { winner, loser } = ganador(p);
-                return (
-                  <div key={i} style={{
-                    background: "var(--surface2)", borderRadius: 10,
-                    padding: "10px 14px", display: "flex",
-                    flexDirection: "column", gap: 3,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                      <span style={{ fontWeight: 700, color, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {winner}
-                      </span>
-                      <span style={{ color: "var(--text2)", fontSize: 12, flexShrink: 0 }}>
-                        {scoreTexto(p)}
-                      </span>
-                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right", color: "var(--text2)" }}>
-                        {loser}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text2)" }}>
-                      {fechaRelativa(p.fecha)}
-                    </div>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-
-          {/* ── Divider ── */}
-          <div style={{ height: 1, background: "var(--surface2)", margin: "20px 0" }} />
+            });
+          })()}
 
           {/* ── Partidos pendientes ── */}
           {(() => {
@@ -281,7 +279,6 @@ export default function Clasificacion({ navTo, irAPerfil }) {
             for (let i = 0; i < jugadores.length; i++) {
               for (let j = i + 1; j < jugadores.length; j++) {
                 if (!parejaJugada(jugadores[i], jugadores[j])) {
-                  // Busca si hay registro pendiente en la API para esta pareja (para obtener fecha límite)
                   const apiFecha = partidos.find(p =>
                     p.grupo === grupoKey && p.estado === "pendiente" &&
                     ((p.local === jugadores[i] && p.visitante === jugadores[j]) ||
@@ -293,43 +290,42 @@ export default function Clasificacion({ navTo, irAPerfil }) {
             }
             return (
               <>
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>Pendientes</span>
-                </div>
-                <div style={{ marginTop: 8, marginBottom: 24, display: "flex", flexDirection: "column", gap: 6 }}>
-                  {pendientesParejas.length === 0 ? (
-                    <div style={{ color: "#4caf50", fontSize: 13, padding: "10px 0", fontWeight: 600 }}>
-                      Todos los partidos jugados ✓
-                    </div>
-                  ) : pendientesParejas.slice(0, 3).map((p, i) => {
-                    const urgente = p.fecha && diasRestantes(p.fecha) < 7;
-                    return (
-                      <div key={i} style={{
-                        background: "var(--surface2)", borderRadius: 10,
-                        padding: "10px 14px", display: "flex",
-                        flexDirection: "column", gap: 3,
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", fontSize: 13 }}>
-                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {p.a}
-                          </span>
-                          <span style={{ color: "var(--text2)", fontSize: 11, padding: "0 8px", flexShrink: 0 }}>vs</span>
-                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
-                            {p.b}
-                          </span>
-                        </div>
-                        {p.fecha && (
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: 11, color: urgente ? "#ff9800" : "var(--text2)" }}>
-                              {formatLimite(p.fecha)}
-                            </span>
-                            {urgente && <span style={{ fontSize: 14 }}>⏱</span>}
-                          </div>
-                        )}
+                <div className="section-title" style={{ marginTop: 20 }}>Pendientes</div>
+                {pendientesParejas.length === 0 ? (
+                  <div style={{ color: "#4caf50", fontSize: 13, padding: "10px 0", fontWeight: 600 }}>
+                    Todos los partidos jugados ✓
+                  </div>
+                ) : pendientesParejas.slice(0, 3).map((p, i) => {
+                  const urgente = p.fecha && diasRestantes(p.fecha) < 7;
+                  return (
+                    <div className="card" key={i}>
+                      <div className="match-row">
+                        <span
+                          className="match-player"
+                          onClick={() => irAPerfil?.(p.a)}
+                        >
+                          {p.a}
+                        </span>
+                        <span className="match-vs">vs</span>
+                        <span
+                          className="match-player"
+                          style={{ textAlign: "right" }}
+                          onClick={() => irAPerfil?.(p.b)}
+                        >
+                          {p.b}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
+                      {p.fecha && (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                          <span style={{ fontSize: 11, color: urgente ? "#ff9800" : "var(--text2)" }}>
+                            {formatLimite(p.fecha)}
+                          </span>
+                          {urgente && <span style={{ fontSize: 14 }}>⏱</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </>
             );
           })()}

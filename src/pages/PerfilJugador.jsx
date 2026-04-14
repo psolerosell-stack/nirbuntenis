@@ -4,25 +4,21 @@ import { useGrupos } from "../GruposContext.jsx";
 import { calcScoreDetalle, calcRivalidades, calcPuntos } from "../engine.js";
 import { palmares as palmaresData, temporadaActual } from "../data.js";
 
-const CAT_COLOR = {
-  Platino: "#4F81BD", Oro: "#C0A000", Plata: "#808080", Bronce: "#C05A00",
-};
+const CAT_COLOR = { Platino: "#4F81BD", Oro: "#C0A000", Plata: "#808080", Bronce: "#C05A00" };
 
-// ── NirbunScore: interno 0-100, display 1.0-10.0 ──────────────────────────
 function to10(s) {
   const v = (s / 100) * 9 + 1;
   return Math.round(v * 10) / 10;
 }
 
-// Escala de colores tipo SofaScore (1-10)
 function scoreColor10(s10) {
-  if (s10 >= 9)   return "#1565c0"; // azul oscuro
-  if (s10 >= 8)   return "#29b6f6"; // cyan
-  if (s10 >= 7)   return "#66bb6a"; // verde
-  if (s10 >= 6.5) return "#ffd600"; // amarillo (valoración inicial)
-  if (s10 >= 6)   return "#ffa726"; // naranja
-  if (s10 >= 5)   return "#ef5350"; // rojo-naranja
-  return "#c62828";                 // rojo oscuro
+  if (s10 >= 9)   return "#1565c0";
+  if (s10 >= 8)   return "#29b6f6";
+  if (s10 >= 7)   return "#66bb6a";
+  if (s10 >= 6.5) return "#ffd600";
+  if (s10 >= 6)   return "#ffa726";
+  if (s10 >= 5)   return "#ef5350";
+  return "#c62828";
 }
 
 function scoreColor(s100) { return scoreColor10(to10(s100)); }
@@ -67,168 +63,14 @@ function initials(nombre) {
   return nombre.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase();
 }
 
-// ─── Header ────────────────────────────────────────────────────────────────
-function Header({ jugador, categoria, grupoLetra, score100 }) {
-  const color  = CAT_COLOR[categoria] || "#888";
-  const s10    = to10(score100);
-  const scCol  = scoreColor10(s10);
-  return (
-    <div className="perfil-header">
-      <div className="perfil-avatar" style={{ background: color }}>{initials(jugador)}</div>
-      <div className="perfil-nombre">{jugador}</div>
-      <div className="perfil-badges">
-        <span className="perfil-cat-badge" style={{ background: color }}>
-          {categoria} {grupoLetra}
-        </span>
-        <span className="perfil-nscore-badge" style={{ color: scCol, borderColor: scCol }}>
-          {s10} <span style={{ fontSize: 10, fontWeight: 600 }}>NS</span>
-        </span>
-      </div>
-    </div>
-  );
-}
+const FACTOR_LABELS = {
+  categoria:    "Categoría",
+  winrate:      "Winrate",
+  sets:         "Sets",
+  juegos:       "Juegos",
+  consistencia: "Consistencia",
+};
 
-// ─── 4 stat cards ──────────────────────────────────────────────────────────
-function StatCards({ pj, winrate, setPct, temporadas }) {
-  const items = [
-    { label: "Partidos",    val: pj },
-    { label: "Winrate",     val: pj > 0 ? `${winrate}%` : "—" },
-    { label: "% Sets",      val: pj > 0 ? `${setPct}%` : "—" },
-    { label: "Temporadas",  val: temporadas },
-  ];
-  return (
-    <div className="perfil-stat-grid">
-      {items.map(({ label, val }) => (
-        <div className="perfil-stat-card" key={label}>
-          <div className="perfil-stat-val">{val}</div>
-          <div className="perfil-stat-label">{label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Últimos partidos (scroll horizontal) ──────────────────────────────────
-function UltimosPartidos({ jugador, mis }) {
-  const lista = [...mis]
-    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
-    .slice(0, 8);
-
-  if (lista.length === 0) {
-    return (
-      <div className="perfil-section-card">
-        <div className="section-title" style={{ marginBottom: 8 }}>Forma reciente</div>
-        <div style={{ fontSize: 13, color: "var(--text2)", padding: "8px 0" }}>Sin partidos jugados aún</div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="perfil-section-card" style={{ paddingBottom: 16 }}>
-      <div className="section-title" style={{ marginBottom: 12 }}>Forma reciente</div>
-      <div className="forma-scroll">
-        {lista.map((p, i) => {
-          const esLocal = p.local === jugador;
-          const rival   = esLocal ? p.visitante : p.local;
-          const { ganador } = calcPuntos(p);
-          const gano    = ganador === jugador;
-          const score   = scorePartido(p, jugador);
-          const rivalInit = initials(rival || "?");
-          return (
-            <div className="forma-card" key={i}>
-              {/* Rival avatar */}
-              <div className="forma-rival-avatar">{rivalInit}</div>
-              {/* Rival name */}
-              <div className="forma-rival-name">{rival}</div>
-              {/* Score sets */}
-              <div className="forma-score">{score}</div>
-              {/* W/L bar */}
-              <div className={`forma-wl-bar ${gano ? "win" : "loss"}`} />
-              {/* W/L label */}
-              <div className={`forma-wl-label ${gano ? "win" : "loss"}`}>{gano ? "W" : "L"}</div>
-              {/* Fecha */}
-              {p.fecha && <div className="forma-fecha">{formatFecha(p.fecha)}</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Palmarés ───────────────────────────────────────────────────────────────
-function Palmares({ jugador }) {
-  const pal = palmaresData[jugador] || {};
-  const titulos    = pal.titulos    ?? 0;
-  const ascensos   = pal.ascensos   ?? 0;
-  const mejorScore = pal.mejorScore ?? 0;
-  const temporadas = pal.temporadas ?? [temporadaActual];
-
-  return (
-    <div className="perfil-section-card perfil-palmares-card">
-      <div className="section-title" style={{ marginBottom: 8 }}>Palmarés</div>
-      <div className="perfil-palmares-row">
-        <span>🏆 Títulos</span>
-        <span className="perfil-palmares-val">{titulos}</span>
-      </div>
-      <div className="perfil-palmares-row">
-        <span>⬆ Ascensos</span>
-        <span className="perfil-palmares-val">{ascensos}</span>
-      </div>
-      <div className="perfil-palmares-row">
-        <span>📈 Mejor NirbunScore</span>
-        <span className="perfil-palmares-val">
-          {mejorScore ? to10(mejorScore) : "—"}
-        </span>
-      </div>
-      <div className="perfil-palmares-row" style={{ border: "none" }}>
-        <span>📅 Temporadas</span>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {temporadas.map(t => (
-            <span key={t} className="grupo-pill-mini" style={{ background: "var(--accent)" }}>{t}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Rivalidades ────────────────────────────────────────────────────────────
-function Rivalidades({ nemesis, victima, irAPerfil }) {
-  function RivCard({ emoji, titulo, data, tipo }) {
-    const vacio = !data;
-    return (
-      <div
-        className={`perfil-riv-card ${vacio ? "perfil-riv-card--empty" : ""}`}
-        onClick={() => !vacio && irAPerfil?.(data.rival)}
-        style={{ cursor: vacio ? "default" : "pointer" }}
-      >
-        <div className="perfil-riv-icon">{emoji}</div>
-        <div className="perfil-riv-title">{titulo}</div>
-        {vacio ? (
-          <div className="perfil-riv-sub">Aún sin datos</div>
-        ) : (
-          <>
-            <div className="perfil-riv-nombre">{data.rival}</div>
-            <div className="perfil-riv-sub">
-              {tipo === "nemesis"
-                ? `${data.derrotas} ${data.derrotas === 1 ? "derrota" : "derrotas"} tuyas`
-                : `${data.victorias} ${data.victorias === 1 ? "victoria" : "victorias"} tuyas`}
-            </div>
-          </>
-        )}
-      </div>
-    );
-  }
-  return (
-    <div className="perfil-riv-row">
-      <RivCard emoji="💀" titulo="Némesis"          data={nemesis} tipo="nemesis" />
-      <RivCard emoji="🎯" titulo="Víctima favorita" data={victima} tipo="victima" />
-    </div>
-  );
-}
-
-// ─── Componente principal ───────────────────────────────────────────────────
 export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
@@ -280,24 +122,190 @@ export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
 
   const { nemesis, victima } = calcRivalidades(jugador, partidos);
 
+  const catColor = CAT_COLOR[categoria] || "#888";
+  const s10      = to10(detalle.total);
+  const scCol    = scoreColor10(s10);
+
   return (
     <div className="page-content">
-      <button className="back-btn" onClick={onVolver}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        Atrás
-      </button>
+      <button className="back-btn" onClick={onVolver}>← Atrás</button>
 
       {loading ? (
         <div className="empty-state">Cargando perfil...</div>
       ) : (
         <>
-          <Header jugador={jugador} categoria={categoria} grupoLetra={grupoLetra} score100={detalle.total} />
-          <StatCards pj={pj} winrate={winrate} setPct={setPct} temporadas={numTemporadas} />
-          <UltimosPartidos jugador={jugador} mis={mis} />
-          <Palmares jugador={jugador} />
-          <Rivalidades nemesis={nemesis} victima={victima} irAPerfil={irAPerfil} />
+          {/* Header */}
+          <div className="perfil-header">
+            <div className="perfil-avatar" style={{ background: catColor }}>
+              {initials(jugador)}
+            </div>
+            <div className="perfil-nombre">{jugador}</div>
+            <div className="perfil-badges">
+              <span className="perfil-cat-badge" style={{ background: catColor, borderColor: catColor }}>
+                {categoria} {grupoLetra}
+              </span>
+              <span className="perfil-nscore-badge" style={{ color: scCol, borderColor: scCol }}>
+                {s10} <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 2 }}>NS</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 4 stat cards */}
+          <div className="perfil-stat-grid">
+            {[
+              { label: "Partidos",   val: pj },
+              { label: "Winrate",    val: pj > 0 ? `${winrate}%` : "—" },
+              { label: "% Sets",     val: pj > 0 ? `${setPct}%` : "—" },
+              { label: "Temporadas", val: numTemporadas },
+            ].map(({ label, val }) => (
+              <div className="perfil-stat-card" key={label}>
+                <div className="perfil-stat-val">{val}</div>
+                <div className="perfil-stat-label">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* NirbunScore detalle */}
+          <div className="perfil-score-card">
+            <div className="section-title" style={{ marginBottom: 10 }}>NirbunScore</div>
+            <div className="perfil-score-total-row">
+              <span className="perfil-score-total-num" style={{ color: scCol }}>{s10}</span>
+              <span style={{ fontSize: 12, color: "var(--text2)", marginLeft: 4 }}>/ 10</span>
+            </div>
+            <div className="perfil-score-main-bar-wrap">
+              <div
+                className="perfil-score-main-bar"
+                style={{ width: `${detalle.total}%`, background: scCol }}
+              />
+            </div>
+            <div style={{ marginTop: 14 }}>
+              {Object.entries(detalle.factores).map(([key, fac]) => (
+                <div className="perfil-factor-row" key={key}>
+                  <span className="perfil-factor-label">{FACTOR_LABELS[key] || key}</span>
+                  <div className="perfil-factor-bar-wrap">
+                    <div
+                      className="perfil-factor-bar"
+                      style={{ width: `${(fac.contribucion / fac.max) * 100}%`, background: scCol }}
+                    />
+                  </div>
+                  <span className="perfil-factor-val">{fac.contribucion}/{fac.max}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Forma reciente */}
+          <div className="perfil-section-card">
+            <div className="section-title" style={{ marginBottom: 10 }}>Forma reciente</div>
+            {mis.length === 0 ? (
+              <div className="empty-state">Sin partidos jugados aún</div>
+            ) : (
+              <div className="forma-scroll">
+                {[...mis]
+                  .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+                  .slice(0, 8)
+                  .map((p, i) => {
+                    const esLocal = p.local === jugador;
+                    const rival   = esLocal ? p.visitante : p.local;
+                    const { ganador } = calcPuntos(p);
+                    const gano    = ganador === jugador;
+                    const score   = scorePartido(p, jugador);
+                    return (
+                      <div className="forma-card" key={i}>
+                        <div className="forma-rival-avatar">{initials(rival || "?")}</div>
+                        <div className="forma-rival-name">{rival}</div>
+                        <div className="forma-score">{score}</div>
+                        <div className={`forma-wl-bar ${gano ? "win" : "loss"}`} />
+                        <div className={`forma-wl-label ${gano ? "win" : "loss"}`}>{gano ? "W" : "L"}</div>
+                        {p.fecha && <div className="forma-fecha">{formatFecha(p.fecha)}</div>}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+
+          {/* Ultimos partidos */}
+          <div className="perfil-section-card">
+            <div className="section-title" style={{ marginBottom: 10 }}>Últimos partidos</div>
+            {mis.length === 0 ? (
+              <div className="empty-state">Sin partidos jugados aún</div>
+            ) : (
+              [...mis]
+                .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+                .slice(0, 5)
+                .map((p, i) => {
+                  const esLocal = p.local === jugador;
+                  const rival   = esLocal ? p.visitante : p.local;
+                  const { ganador } = calcPuntos(p);
+                  const gano    = ganador === jugador;
+                  const score   = scorePartido(p, jugador);
+                  return (
+                    <div className="perfil-match-row" key={i}>
+                      <span className={`perfil-match-badge ${gano ? "win" : "loss"}`}>{gano ? "W" : "L"}</span>
+                      <span className="perfil-match-rival">{rival}</span>
+                      <span className="perfil-match-score">{score}</span>
+                      {p.fecha && <span className="perfil-match-fecha">{formatFecha(p.fecha)}</span>}
+                    </div>
+                  );
+                })
+            )}
+          </div>
+
+          {/* Palmarés */}
+          <div className="perfil-section-card perfil-palmares-card">
+            <div className="section-title" style={{ marginBottom: 10 }}>Palmarés</div>
+            <div className="perfil-palmares-row">
+              <span>Títulos</span>
+              <span className="perfil-palmares-val">{pal.titulos ?? 0}</span>
+            </div>
+            <div className="perfil-palmares-row">
+              <span>Ascensos</span>
+              <span className="perfil-palmares-val">{pal.ascensos ?? 0}</span>
+            </div>
+            <div className="perfil-palmares-row">
+              <span>Mejor NirbunScore</span>
+              <span className="perfil-palmares-val">{pal.mejorScore ? to10(pal.mejorScore) : "—"}</span>
+            </div>
+            <div className="perfil-palmares-row">
+              <span>Temporadas</span>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                {(pal.temporadas ?? [temporadaActual]).map(t => (
+                  <span key={t} className="grupo-pill-mini" style={{ background: "var(--accent)" }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Rivalidades */}
+          <div className="perfil-riv-row">
+            {[
+              { emoji: "💀", titulo: "Némesis",          data: nemesis, tipo: "nemesis" },
+              { emoji: "🎯", titulo: "Víctima favorita", data: victima, tipo: "victima" },
+            ].map(({ emoji, titulo, data, tipo }) => (
+              <div
+                key={tipo}
+                className={`perfil-riv-card ${!data ? "perfil-riv-card--empty" : ""}`}
+                onClick={() => data && irAPerfil?.(data.rival)}
+                style={{ cursor: data ? "pointer" : "default" }}
+              >
+                <div className="perfil-riv-icon">{emoji}</div>
+                <div className="perfil-riv-title">{titulo}</div>
+                {!data ? (
+                  <div className="perfil-riv-sub">Aún sin datos</div>
+                ) : (
+                  <>
+                    <div className="perfil-riv-nombre">{data.rival}</div>
+                    <div className="perfil-riv-sub">
+                      {tipo === "nemesis"
+                        ? `${data.derrotas} ${data.derrotas === 1 ? "derrota" : "derrotas"} tuyas`
+                        : `${data.victorias} ${data.victorias === 1 ? "victoria" : "victorias"} tuyas`}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>

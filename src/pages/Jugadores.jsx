@@ -20,10 +20,6 @@ const CAT_SCORE = { Platino: 100, Oro: 75, Plata: 50, Bronce: 25 };
 // ── Utilidades ──────────────────────────────────────────────────────────────
 function getCat(grupo) { return (grupo || "").split("-")[0]; }
 
-// Búsqueda inteligente: "Pol Solé" encuentra "P. Solé"
-// Cada palabra del query debe coincidir con alguna palabra del nombre:
-//   - coincidencia directa ("solé" en "solé"), O
-//   - la palabra del nombre es una inicial ("p.") y el query empieza por esa letra ("pol")
 function matchNombre(nombre, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
@@ -32,8 +28,8 @@ function matchNombre(nombre, query) {
   const nWords = nombre.toLowerCase().split(/\s+/).filter(Boolean);
   return qWords.every(qw =>
     nWords.some(nw => {
-      if (nw.includes(qw)) return true;                          // "solé".includes("sol") ✓
-      if (nw.endsWith(".") && qw.startsWith(nw.slice(0, -1))) return true; // "p." + "pol" ✓
+      if (nw.includes(qw)) return true;
+      if (nw.endsWith(".") && qw.startsWith(nw.slice(0, -1))) return true;
       return false;
     })
   );
@@ -95,7 +91,7 @@ function buildStats(partidos, grupos) {
   });
   return Object.values(stats).map(s => ({
     ...s,
-    pct:   s.pj > 0 ? Math.round((s.g / s.pj) * 100) : 0,
+    pct:    s.pj > 0 ? Math.round((s.g / s.pj) * 100) : 0,
     winPct: s.pj > 0 ? Math.round((s.g / s.pj) * 100) : 0,
     setPct: (s.sG+s.sP) > 0 ? Math.round((s.sG/(s.sG+s.sP))*100) : 0,
     jPct:   (s.jG+s.jP) > 0 ? Math.round((s.jG/(s.jG+s.jP))*100) : 0,
@@ -243,7 +239,6 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
   const colorA = statsA ? CAT_COLOR[getCat(statsA.grupo)] || "#888" : "#888";
   const colorB = statsB ? CAT_COLOR[getCat(statsB.grupo)] || "#888" : "#888";
 
-  // H2H partidos
   const h2h = useMemo(() => {
     if (!jugA || !jugB) return [];
     return partidos.filter(m => {
@@ -381,10 +376,10 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
 
           {/* Botones ver perfil */}
           <div className="cmp-perfil-btns">
-            <button className="btn-secondary cmp-perfil-btn" onClick={() => irAPerfil?.(statsA.nombre)}>
+            <button className="cmp-perfil-btn btn-secondary" onClick={() => irAPerfil?.(statsA.nombre)}>
               Ver perfil {statsA.nombre.split(" ")[0]} →
             </button>
-            <button className="btn-secondary cmp-perfil-btn" onClick={() => irAPerfil?.(statsB.nombre)}>
+            <button className="cmp-perfil-btn btn-secondary" onClick={() => irAPerfil?.(statsB.nombre)}>
               Ver perfil {statsB.nombre.split(" ")[0]} →
             </button>
           </div>
@@ -395,33 +390,50 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
 }
 
 // ── Modal añadir jugador ─────────────────────────────────────────────────────
-function ModalAñadir({ onClose, onGuardar }) {
+function ModalAñadir({ showModal, setShowModal, onGuardar }) {
   const [nombre,    setNombre]    = useState("");
   const [categoria, setCategoria] = useState("");
   const [grupo,     setGrupo]     = useState("");
   const [sending,   setSending]   = useState(false);
   const [error,     setError]     = useState(null);
 
-  async function handleSubmit() {
+  async function handleGuardar() {
     const t = nombre.trim();
     if (!t || !categoria || !grupo) { setError("Completa todos los campos"); return; }
     setSending(true); setError(null);
-    try { await onGuardar(t, categoria, grupo); onClose(); }
+    try { await onGuardar(t, categoria, grupo); setShowModal(false); }
     catch { setError("Error al añadir el jugador."); setSending(false); }
   }
 
+  if (!showModal) return null;
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+      <div className="modal-box">
         <div className="modal-title">Añadir jugador</div>
-        {error && <div className="alert alert-error" style={{ marginBottom: 12 }}>{error}</div>}
+        {error && (
+          <div style={{ fontSize: 13, color: "#c0392b", background: "#fdecea", borderRadius: 6, padding: "6px 10px", marginBottom: 10 }}>
+            {error}
+          </div>
+        )}
         <div className="form-group">
           <label className="form-label">Nombre</label>
-          <input className="form-select" type="text" placeholder="Ej: J. García" value={nombre} onChange={e => setNombre(e.target.value)} autoFocus />
+          <input
+            className="form-input"
+            type="text"
+            placeholder="Ej: J. García"
+            value={nombre}
+            onChange={e => setNombre(e.target.value)}
+            autoFocus
+          />
         </div>
         <div className="form-group">
           <label className="form-label">Categoría</label>
-          <select className="form-select" value={categoria} onChange={e => { setCategoria(e.target.value); setGrupo(""); }}>
+          <select
+            className="form-select"
+            value={categoria}
+            onChange={e => { setCategoria(e.target.value); setGrupo(""); }}
+          >
             <option value="">— Selecciona —</option>
             {CATS_ADD.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -429,7 +441,11 @@ function ModalAñadir({ onClose, onGuardar }) {
         {categoria && (
           <div className="form-group">
             <label className="form-label">Grupo</label>
-            <select className="form-select" value={grupo} onChange={e => setGrupo(e.target.value)}>
+            <select
+              className="form-select"
+              value={grupo}
+              onChange={e => setGrupo(e.target.value)}
+            >
               <option value="">— Selecciona —</option>
               <option value="A">Grupo A</option>
               <option value="B">Grupo B</option>
@@ -437,8 +453,10 @@ function ModalAñadir({ onClose, onGuardar }) {
           </div>
         )}
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onClose} disabled={sending}>Cancelar</button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={sending}>{sending ? "Guardando..." : "Añadir"}</button>
+          <button className="btn-secondary" onClick={() => setShowModal(false)} disabled={sending}>Cancelar</button>
+          <button className="btn-primary" onClick={handleGuardar} disabled={sending}>
+            {sending ? "Guardando..." : "Guardar"}
+          </button>
         </div>
       </div>
     </div>
@@ -484,8 +502,9 @@ export default function Jugadores({ irAPerfil }) {
 
   return (
     <div className="page-content">
-      <div className="page-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        Jugadores
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div className="page-title" style={{ margin: 0 }}>Jugadores</div>
         <button className="btn-icon" onClick={() => setShowModal(true)} title="Añadir jugador">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -497,34 +516,61 @@ export default function Jugadores({ irAPerfil }) {
       </div>
 
       {/* Toggle vistas */}
-      <div className="vista-toggle">
-        <button className={`vista-btn ${vista === "ranking"  ? "active" : ""}`} onClick={() => setVista("ranking")}>Ranking</button>
+      <div className="vista-toggle" style={{ marginBottom: 12 }}>
+        <button className={`vista-btn ${vista === "ranking" ? "active" : ""}`} onClick={() => setVista("ranking")}>Ranking</button>
         <button className={`vista-btn ${vista === "comparar" ? "active" : ""}`} onClick={() => setVista("comparar")}>Comparar</button>
       </div>
 
       {loading && <div className="empty-state">Cargando...</div>}
-      {error   && <div className="alert alert-error">{error}</div>}
+      {error   && <div style={{ fontSize: 13, color: "#c0392b", background: "#fdecea", borderRadius: 6, padding: "6px 10px", marginBottom: 12 }}>{error}</div>}
 
       {!loading && !error && vista === "ranking" && (
         <>
-          <div className="search-bar-wrap">
-            <svg className="search-bar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          {/* Búsqueda */}
+          <div className="search-bar-wrap" style={{ marginBottom: 12 }}>
+            <svg className="search-bar-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            <input className="search-bar-input" type="text" placeholder="Buscar jugador..." value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button className="search-bar-clear" onClick={() => setSearch("")}>✕</button>}
+            <input
+              className="search-bar-input"
+              type="text"
+              placeholder="Buscar jugador..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="search-bar-clear" onClick={() => setSearch("")}>✕</button>
+            )}
           </div>
 
-          <div className="pills-row">
-            {CATEGORIAS.map(cat => (
-              <button key={cat} className={`pill ${catFiltro === cat ? "active" : ""}`} onClick={() => setCatFiltro(cat)}>{cat}</button>
-            ))}
+          {/* Pills de categoría */}
+          <div className="pills-row" style={{ marginBottom: 10 }}>
+            {CATEGORIAS.map(cat => {
+              const isActive = catFiltro === cat;
+              const color = CAT_COLOR[cat];
+              return (
+                <button
+                  key={cat}
+                  className={`pill${isActive ? ` active-${cat}` : ""}`}
+                  style={isActive && color ? { background: color, borderColor: color, color: "#fff" } : undefined}
+                  onClick={() => setCatFiltro(cat)}
+                >
+                  {cat}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="sort-row">
-            <span className="sort-label">Ordenar:</span>
+          {/* Sort buttons */}
+          <div className="sort-row" style={{ marginBottom: 10 }}>
             {SORT_OPTIONS.map(opt => (
-              <button key={opt.key} className={`sort-btn ${sortKey === opt.key ? "active" : ""}`} onClick={() => setSortKey(opt.key)}>{opt.label}</button>
+              <button
+                key={opt.key}
+                className={`sort-btn${sortKey === opt.key ? " active" : ""}`}
+                onClick={() => setSortKey(opt.key)}
+              >
+                {opt.label}
+              </button>
             ))}
           </div>
 
@@ -533,7 +579,9 @@ export default function Jugadores({ irAPerfil }) {
               <JugadorRow key={j.nombre} jugador={j} rank={i + 1} irAPerfil={irAPerfil} />
             ))}
           </div>
-          {filtrados.length === 0 && <div className="empty-state">No hay jugadores en esta categoría</div>}
+          {filtrados.length === 0 && (
+            <div className="empty-state">No hay jugadores en esta categoría</div>
+          )}
         </>
       )}
 
@@ -541,9 +589,7 @@ export default function Jugadores({ irAPerfil }) {
         <VistaComparar stats={stats} partidos={partidos} irAPerfil={irAPerfil} />
       )}
 
-      {showModal && (
-        <ModalAñadir onClose={() => setShowModal(false)} onGuardar={agregarJugador} />
-      )}
+      <ModalAñadir showModal={showModal} setShowModal={setShowModal} onGuardar={agregarJugador} />
     </div>
   );
 }

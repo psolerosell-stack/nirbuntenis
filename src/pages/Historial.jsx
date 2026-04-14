@@ -11,7 +11,7 @@ const CAT_COLOR = {
   Bronce: "#C05A00",
 };
 
-// ─── Validación de sets (igual que en Resultado.jsx) ───────────────────────
+// ─── Validación de sets ────────────────────────────────────────────────────
 function n(v) { return v === "" ? null : parseInt(v, 10); }
 
 function validarSets(s1l, s1v, s2l, s2v, stbl, stbv) {
@@ -40,7 +40,7 @@ function validarSets(s1l, s1v, s2l, s2v, stbl, stbv) {
 }
 
 // ─── Modal de registro de resultado ────────────────────────────────────────
-function ResultadoModal({ grupos, onClose, onGuardado }) {
+function ResultadoModal({ grupos, open, onClose, onGuardado }) {
   const [cat, setCat] = useState("");
   const [grupoLetra, setGrupoLetra] = useState("");
   const [local, setLocal] = useState("");
@@ -88,16 +88,24 @@ function ResultadoModal({ grupos, onClose, onGuardado }) {
     }
   }
 
+  if (!open) return null;
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxHeight: "85vh", overflowY: "auto" }}>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
         <div className="modal-title">Registrar resultado</div>
 
-        {msg && <div className={`alert alert-${msgType}`}>{msg}</div>}
+        {msg && (
+          <div className={`alert alert-${msgType === "error" ? "error" : "success"}`}>{msg}</div>
+        )}
 
         <div className="form-group">
           <label className="form-label">Categoría</label>
-          <select className="form-select" value={cat} onChange={e => { setCat(e.target.value); setGrupoLetra(""); setLocal(""); setVisitante(""); setMsg(null); }}>
+          <select
+            className="form-select"
+            value={cat}
+            onChange={e => { setCat(e.target.value); setGrupoLetra(""); setLocal(""); setVisitante(""); setMsg(null); }}
+          >
             <option value="">— Selecciona —</option>
             {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -106,7 +114,11 @@ function ResultadoModal({ grupos, onClose, onGuardado }) {
         {cat && (
           <div className="form-group">
             <label className="form-label">Grupo</label>
-            <select className="form-select" value={grupoLetra} onChange={e => { setGrupoLetra(e.target.value); setLocal(""); setVisitante(""); }}>
+            <select
+              className="form-select"
+              value={grupoLetra}
+              onChange={e => { setGrupoLetra(e.target.value); setLocal(""); setVisitante(""); }}
+            >
               <option value="">— Selecciona —</option>
               {["A", "B"].map(g => <option key={g} value={g}>Grupo {g}</option>)}
             </select>
@@ -116,7 +128,11 @@ function ResultadoModal({ grupos, onClose, onGuardado }) {
         {grupoKey && jugadores.length > 0 && (
           <div className="form-group">
             <label className="form-label">Jugador local</label>
-            <select className="form-select" value={local} onChange={e => { setLocal(e.target.value); setVisitante(""); }}>
+            <select
+              className="form-select"
+              value={local}
+              onChange={e => { setLocal(e.target.value); setVisitante(""); }}
+            >
               <option value="">— Selecciona —</option>
               {jugadores.map(j => <option key={j} value={j}>{j}</option>)}
             </select>
@@ -126,7 +142,11 @@ function ResultadoModal({ grupos, onClose, onGuardado }) {
         {local && (
           <div className="form-group">
             <label className="form-label">Jugador visitante</label>
-            <select className="form-select" value={visitante} onChange={e => setVisitante(e.target.value)}>
+            <select
+              className="form-select"
+              value={visitante}
+              onChange={e => setVisitante(e.target.value)}
+            >
               <option value="">— Selecciona —</option>
               {visitantesDisp.map(j => <option key={j} value={j}>{j}</option>)}
             </select>
@@ -135,7 +155,7 @@ function ResultadoModal({ grupos, onClose, onGuardado }) {
 
         {visitante && (
           <>
-            <div style={{ marginBottom: 12, fontWeight: 600, fontSize: 13, color: "var(--text2)" }}>
+            <div style={{ marginBottom: 4, fontWeight: 600, fontSize: 13, color: "var(--text2)" }}>
               <span style={{ color: "var(--text1)" }}>L:</span> {local} &nbsp;|&nbsp; <span style={{ color: "var(--text1)" }}>V:</span> {visitante}
             </div>
 
@@ -173,21 +193,17 @@ function ResultadoModal({ grupos, onClose, onGuardado }) {
                 </div>
               </div>
             )}
-
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={onClose} disabled={sending}>Cancelar</button>
-              <button className="btn-primary" onClick={handleGuardar} disabled={sending}>
-                {sending ? "Enviando..." : "Guardar"}
-              </button>
-            </div>
           </>
         )}
 
-        {!visitante && (
-          <div className="modal-actions">
-            <button className="btn-secondary" onClick={onClose}>Cancelar</button>
-          </div>
-        )}
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={onClose} disabled={sending}>Cancelar</button>
+          {visitante && (
+            <button className="btn-primary" onClick={handleGuardar} disabled={sending}>
+              {sending ? "Enviando..." : "Guardar"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -300,7 +316,6 @@ export default function Historial({ irAClasificacion }) {
 
   function handleGuardado() {
     setModalResultado(false);
-    // Recargar datos tras guardar
     const controller = new AbortController();
     Promise.all([fetchPartidos(controller.signal), fetchConfig(controller.signal)])
       .then(([pJson, cJson]) => {
@@ -323,7 +338,7 @@ export default function Historial({ irAClasificacion }) {
 
   return (
     <div className="page-content">
-      <div className="page-title">Inicio</div>
+      <h1 className="page-title">Inicio</h1>
 
       {/* Banner registrar resultado */}
       <button className="resultado-banner" onClick={() => setModalResultado(true)}>
@@ -343,12 +358,12 @@ export default function Historial({ irAClasificacion }) {
         </svg>
       </button>
 
-      {loading && <div className="empty-state">Cargando...</div>}
+      {loading && <div className="loading-text">Cargando...</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
       {!loading && !error && (
         <>
-          <div className="section-title">Temporada</div>
+          <p className="section-label">Temporada</p>
           <div className="temporada-card">
             <div className="temporada-top">
               <span className="temporada-name">{temporada}</span>
@@ -356,7 +371,7 @@ export default function Historial({ irAClasificacion }) {
             </div>
             <div className="temporada-progreso">
               <div className="progreso-bar">
-                <div className="progreso-fill" style={{ width: `${pct}%` }} />
+                <div className="progreso-fill" style={{ width: pct + "%" }}></div>
               </div>
               <div className="progreso-labels">
                 <span>{jugados.length} de {totalPartidosTeorico} partidos jugados</span>
@@ -365,7 +380,7 @@ export default function Historial({ irAClasificacion }) {
             </div>
           </div>
 
-          <div className="section-title">Posiciones actuales</div>
+          <p className="section-label">Posiciones actuales</p>
           <div style={{ fontSize: 12, color: "var(--text2)", marginBottom: 12 }}>
             Ascensos y descensos proyectados con la clasificación actual
           </div>
@@ -381,7 +396,7 @@ export default function Historial({ irAClasificacion }) {
             <span className="arrow-down">↓</span> Desciende
           </div>
 
-          <div className="section-title" style={{ marginTop: 24 }}>Normas</div>
+          <p className="section-label">Normas</p>
           <div className="normas-card">
             <div className="norma-bloque">
               <div className="norma-titulo">🎾 Formato de partido</div>
@@ -435,13 +450,12 @@ export default function Historial({ irAClasificacion }) {
         </>
       )}
 
-      {modalResultado && (
-        <ResultadoModal
-          grupos={grupos}
-          onClose={() => setModalResultado(false)}
-          onGuardado={handleGuardado}
-        />
-      )}
+      <ResultadoModal
+        grupos={grupos}
+        open={modalResultado}
+        onClose={() => setModalResultado(false)}
+        onGuardado={handleGuardado}
+      />
     </div>
   );
 }
