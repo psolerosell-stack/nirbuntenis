@@ -298,7 +298,7 @@ function VistaComparar({ stats, partidos, irAPerfil }) {
               <div className="cmp-col-nombre">{statsA.nombre}</div>
               <span className="grupo-pill-mini" style={{ background: colorA }}>{statsA.grupo}</span>
             </div>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ flex: 1.4, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", letterSpacing: "0.05em" }}>VS</span>
             </div>
             <div className="cmp-col-header" style={{ alignItems: "flex-end" }}>

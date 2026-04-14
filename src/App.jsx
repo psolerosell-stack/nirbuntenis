@@ -27,15 +27,37 @@ const TABS = [
     id: "partidos",
     label: "Partidos",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="5.5" cy="5.5" r="4.5"/>
-        <line x1="3" y1="5.5" x2="8" y2="5.5"/>
-        <line x1="5.5" y1="3" x2="5.5" y2="8"/>
-        <line x1="9" y1="9" x2="20" y2="20"/>
-        <circle cx="18.5" cy="5.5" r="4.5"/>
-        <line x1="16" y1="5.5" x2="21" y2="5.5"/>
-        <line x1="18.5" y1="3" x2="18.5" y2="8"/>
-        <line x1="15" y1="9" x2="4" y2="20"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+        <defs>
+          <clipPath id="rc1"><circle cx="5.5" cy="5.5" r="4.2"/></clipPath>
+          <clipPath id="rc2"><circle cx="18.5" cy="5.5" r="4.2"/></clipPath>
+        </defs>
+        {/* Racket 1 head */}
+        <circle cx="5.5" cy="5.5" r="4.2" strokeWidth="1.7"/>
+        {/* Strings 1 */}
+        <g clipPath="url(#rc1)" strokeWidth="0.9">
+          <line x1="1" y1="3.8" x2="10" y2="3.8"/>
+          <line x1="1" y1="5.5" x2="10" y2="5.5"/>
+          <line x1="1" y1="7.2" x2="10" y2="7.2"/>
+          <line x1="3.8" y1="1" x2="3.8" y2="10"/>
+          <line x1="5.5" y1="1" x2="5.5" y2="10"/>
+          <line x1="7.2" y1="1" x2="7.2" y2="10"/>
+        </g>
+        {/* Handle 1 */}
+        <line x1="8.8" y1="8.8" x2="20" y2="20" strokeWidth="1.9"/>
+        {/* Racket 2 head */}
+        <circle cx="18.5" cy="5.5" r="4.2" strokeWidth="1.7"/>
+        {/* Strings 2 */}
+        <g clipPath="url(#rc2)" strokeWidth="0.9">
+          <line x1="14" y1="3.8" x2="23" y2="3.8"/>
+          <line x1="14" y1="5.5" x2="23" y2="5.5"/>
+          <line x1="14" y1="7.2" x2="23" y2="7.2"/>
+          <line x1="16.8" y1="1" x2="16.8" y2="10"/>
+          <line x1="18.5" y1="1" x2="18.5" y2="10"/>
+          <line x1="20.2" y1="1" x2="20.2" y2="10"/>
+        </g>
+        {/* Handle 2 */}
+        <line x1="15.2" y1="8.8" x2="4" y2="20" strokeWidth="1.9"/>
       </svg>
     ),
   },
