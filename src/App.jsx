@@ -9,6 +9,16 @@ import PerfilJugador from "./pages/PerfilJugador.jsx";
 
 const TABS = [
   {
+    id: "historial",
+    label: "Inicio",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
+  {
     id: "clasificacion",
     label: "Clasificación",
     icon: (
@@ -31,9 +41,7 @@ const TABS = [
           <clipPath id="rc1"><circle cx="5.5" cy="5.5" r="4.2"/></clipPath>
           <clipPath id="rc2"><circle cx="18.5" cy="5.5" r="4.2"/></clipPath>
         </defs>
-        {/* Racket 1 head */}
         <circle cx="5.5" cy="5.5" r="4.2" strokeWidth="1.7"/>
-        {/* Strings 1 */}
         <g clipPath="url(#rc1)" strokeWidth="0.9">
           <line x1="1" y1="3.8" x2="10" y2="3.8"/>
           <line x1="1" y1="5.5" x2="10" y2="5.5"/>
@@ -42,11 +50,8 @@ const TABS = [
           <line x1="5.5" y1="1" x2="5.5" y2="10"/>
           <line x1="7.2" y1="1" x2="7.2" y2="10"/>
         </g>
-        {/* Handle 1 */}
         <line x1="8.8" y1="8.8" x2="20" y2="20" strokeWidth="1.9"/>
-        {/* Racket 2 head */}
         <circle cx="18.5" cy="5.5" r="4.2" strokeWidth="1.7"/>
-        {/* Strings 2 */}
         <g clipPath="url(#rc2)" strokeWidth="0.9">
           <line x1="14" y1="3.8" x2="23" y2="3.8"/>
           <line x1="14" y1="5.5" x2="23" y2="5.5"/>
@@ -55,19 +60,7 @@ const TABS = [
           <line x1="18.5" y1="1" x2="18.5" y2="10"/>
           <line x1="20.2" y1="1" x2="20.2" y2="10"/>
         </g>
-        {/* Handle 2 */}
         <line x1="15.2" y1="8.8" x2="4" y2="20" strokeWidth="1.9"/>
-      </svg>
-    ),
-  },
-  {
-    id: "historial",
-    label: "Inicio",
-    center: true,
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
     ),
   },
@@ -126,10 +119,10 @@ export default function App() {
               {TABS.map(t => (
                 <button
                   key={t.id}
-                  className={`nav-tab ${tab === t.id ? "active" : ""} ${t.center ? "center" : ""}`}
+                  className={`nav-tab ${tab === t.id ? "active" : ""}`}
                   onClick={() => setTab(t.id)}
                 >
-                  {t.center ? <span className="center-icon-wrap">{t.icon}</span> : t.icon}
+                  {t.icon}
                   {t.label}
                 </button>
               ))}

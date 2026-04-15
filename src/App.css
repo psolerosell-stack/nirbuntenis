@@ -1232,6 +1232,57 @@ html, body, #root {
   flex-shrink: 0;
 }
 
+/* Playoff match block (foco principal) */
+.prov-match-block {
+  padding: 8px 0;
+}
+.prov-match-block:first-of-type { padding-top: 0; }
+
+.prov-match-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+
+.prov-match-players {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prov-match-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text1);
+}
+
+/* Direct movements (contexto secundario) */
+.prov-direct-strip {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.prov-direct-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.prov-direct-item--down .arrow-down { color: #ef5350; }
+
 /* ══════════════════════════════════════════
    PERFIL DE JUGADOR
 ══════════════════════════════════════════ */

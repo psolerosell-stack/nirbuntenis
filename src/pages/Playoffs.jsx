@@ -230,32 +230,40 @@ function CatCard({ data, onRegistrar }) {
             Si terminara hoy
           </div>
 
-          {promovidos.map((j, i) => (
-            <div key={`up-${j}`} className="prov-row">
-              <span className="badge badge-up">↑</span>
-              <span className="prov-player">{j}</span>
-              <span className="prov-sub">Gr. {i === 0 ? letraA : letraB} · 1º</span>
+          {/* Cruces de playoff — foco principal */}
+          {matches.map((m, idx) => (
+            <div key={m.tipo} className="prov-match-block" style={idx > 0 ? { borderTop: "1px solid var(--border)" } : {}}>
+              <div className="prov-match-type">
+                <span className={`badge ${m.tipo === "ascenso" ? "badge-po-up" : "badge-po-down"}`}>
+                  {m.tipo === "ascenso" ? "PO↑" : "PO↓"}
+                </span>
+                {m.tipo === "ascenso" ? "Playoff ascenso" : "Playoff descenso"}
+              </div>
+              <div className="prov-match-players">
+                <span className="prov-match-name">{m.j1}</span>
+                <span className="prov-vs">vs</span>
+                <span className="prov-match-name" style={{ textAlign: "right" }}>{m.j2}</span>
+              </div>
             </div>
           ))}
 
-          {matches.map(m => (
-            <div key={m.tipo} className="prov-row">
-              <span className={`badge ${m.tipo === "ascenso" ? "badge-po-up" : "badge-po-down"}`}>
-                {m.tipo === "ascenso" ? "PO↑" : "PO↓"}
-              </span>
-              <span className="prov-player">{m.j1}</span>
-              <span className="prov-vs">vs</span>
-              <span className="prov-player" style={{ textAlign: "right" }}>{m.j2}</span>
+          {/* Ascensos y descensos directos — contexto secundario */}
+          {(promovidos.length > 0 || descendidos.length > 0) && (
+            <div className="prov-direct-strip">
+              {promovidos.map((j, i) => (
+                <span key={`up-${j}`} className="prov-direct-item">
+                  <span className="arrow-up">↑</span> {j}
+                  <span className="prov-sub" style={{ marginLeft: 3 }}>Gr. {i === 0 ? letraA : letraB}</span>
+                </span>
+              ))}
+              {descendidos.map((j, i) => (
+                <span key={`down-${j}`} className="prov-direct-item prov-direct-item--down">
+                  <span className="arrow-down">↓</span> {j}
+                  <span className="prov-sub" style={{ marginLeft: 3 }}>Gr. {i === 0 ? letraA : letraB}</span>
+                </span>
+              ))}
             </div>
-          ))}
-
-          {descendidos.map((j, i) => (
-            <div key={`down-${j}`} className="prov-row">
-              <span className="badge badge-down">↓</span>
-              <span className="prov-player">{j}</span>
-              <span className="prov-sub">Gr. {i === 0 ? letraA : letraB} · Último</span>
-            </div>
-          ))}
+          )}
         </div>
       )}
 
