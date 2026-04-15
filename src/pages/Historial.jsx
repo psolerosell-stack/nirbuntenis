@@ -27,6 +27,15 @@ function ResultadoModal({ grupos, open, onClose, onGuardado }) {
   const [msgType, setMsgType] = useState("error");
   const [sending, setSending] = useState(false);
 
+  // Limpia el formulario cada vez que el modal se abre
+  useEffect(() => {
+    if (open) {
+      setCat(""); setGrupoLetra(""); setLocal(""); setVisitante("");
+      setS1l(""); setS1v(""); setS2l(""); setS2v("");
+      setStbl(""); setStbv(""); setMsg(null);
+    }
+  }, [open]);
+
   const grupoKey = cat && grupoLetra ? `${cat}-${grupoLetra}` : null;
   const jugadores = grupoKey ? (grupos[grupoKey] || []) : [];
   const visitantesDisp = jugadores.filter(j => j !== local);
