@@ -265,7 +265,7 @@ function CatCard({ data, onRegistrar }) {
   );
 }
 
-export default function Playoffs() {
+export default function Playoffs({ embedded = false }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -305,10 +305,8 @@ export default function Playoffs() {
     window.location.reload();
   }
 
-  return (
-    <div className="page-content">
-      <h1 className="page-title">Playoffs</h1>
-
+  const inner = (
+    <>
       {loading && <div className="loading-text">Cargando...</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -347,6 +345,15 @@ export default function Playoffs() {
           onSaved={handleSaved}
         />
       )}
+    </>
+  );
+
+  if (embedded) return inner;
+
+  return (
+    <div className="page-content">
+      <h1 className="page-title">Playoffs</h1>
+      {inner}
     </div>
   );
 }

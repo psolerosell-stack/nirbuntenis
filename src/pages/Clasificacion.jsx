@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchPartidos, clearLocalCache } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcClasificacion } from "../engine.js";
+import Playoffs from "./Playoffs.jsx";
 
 const CATEGORIAS = ["Platino", "Oro", "Plata", "Bronce"];
 
@@ -92,6 +93,7 @@ function getBadge(idx, total) {
 
 export default function Clasificacion({ navTo, irAPerfil }) {
   const { grupos } = useGrupos();
+  const [vista, setVista] = useState("ranking");
   const [cat, setCat] = useState("Platino");
   const [grupo, setGrupo] = useState("A");
 
@@ -149,6 +151,26 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         </button>
       </div>
 
+      {/* Vista toggle */}
+      <div className="vista-toggle" style={{ marginBottom: 12 }}>
+        <button
+          className={`vista-btn ${vista === "ranking" ? "active" : ""}`}
+          onClick={() => setVista("ranking")}
+        >
+          Ranking
+        </button>
+        <button
+          className={`vista-btn ${vista === "playoffs" ? "active" : ""}`}
+          onClick={() => setVista("playoffs")}
+        >
+          Playoffs
+        </button>
+      </div>
+
+      {vista === "playoffs" && <Playoffs embedded />}
+
+      {vista === "ranking" && (
+        <>
       {/* Category pills */}
       <div className="pills">
         {CATEGORIAS.map(c => (
@@ -329,6 +351,8 @@ export default function Clasificacion({ navTo, irAPerfil }) {
               </>
             );
           })()}
+        </>
+      )}
         </>
       )}
     </div>
