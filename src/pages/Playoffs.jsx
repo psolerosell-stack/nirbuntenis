@@ -188,8 +188,11 @@ function PlayoffMatchCard({ match, cat, onRegistrar }) {
 }
 
 function CatCard({ data, onRegistrar }) {
-  const { cat, expA, expB, jugadosA, jugadosB, completo, matches, promovidos, descendidos } = data;
+  const { cat, gA, gB, expA, expB, jugadosA, jugadosB, completo, matches, promovidos, descendidos } = data;
   const color = CAT_COLOR[cat];
+  const hayProvisional = !completo && (jugadosA + jugadosB) > 0 && (promovidos.length > 0 || matches.length > 0);
+  const letraA = gA.split("-")[1] ?? "A";
+  const letraB = gB.split("-")[1] ?? "B";
   const pctA = expA > 0 ? Math.round((jugadosA / expA) * 100) : 0;
   const pctB = expB > 0 ? Math.round((jugadosB / expB) * 100) : 0;
 
@@ -219,6 +222,42 @@ function CatCard({ data, onRegistrar }) {
           <span className="playoff-prog-num">{jugadosB}/{expB}</span>
         </div>
       </div>
+
+      {hayProvisional && (
+        <div className="prov-section">
+          <div className="prov-header">
+            <span className="prov-badge">Provisional</span>
+            Si terminara hoy
+          </div>
+
+          {promovidos.map((j, i) => (
+            <div key={`up-${j}`} className="prov-row">
+              <span className="badge badge-up">↑</span>
+              <span className="prov-player">{j}</span>
+              <span className="prov-sub">Gr. {i === 0 ? letraA : letraB} · 1º</span>
+            </div>
+          ))}
+
+          {matches.map(m => (
+            <div key={m.tipo} className="prov-row">
+              <span className={`badge ${m.tipo === "ascenso" ? "badge-po-up" : "badge-po-down"}`}>
+                {m.tipo === "ascenso" ? "PO↑" : "PO↓"}
+              </span>
+              <span className="prov-player">{m.j1}</span>
+              <span className="prov-vs">vs</span>
+              <span className="prov-player" style={{ textAlign: "right" }}>{m.j2}</span>
+            </div>
+          ))}
+
+          {descendidos.map((j, i) => (
+            <div key={`down-${j}`} className="prov-row">
+              <span className="badge badge-down">↓</span>
+              <span className="prov-player">{j}</span>
+              <span className="prov-sub">Gr. {i === 0 ? letraA : letraB} · Último</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {completo && (
         <div className="playoff-bracket">
@@ -313,18 +352,19 @@ export default function Playoffs({ embedded = false }) {
       {!loading && !error && (
         <>
           {!alguno && (
-            <div style={{ textAlign: "center", padding: "32px 0" }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🎾</div>
+            <div style={{ textAlign: "center", padding: "24px 0 8px" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>🏆</div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text1)", marginBottom: 6 }}>
-                Playoffs todavía no disponibles
+                Playoffs aún no activos
               </div>
-              <div style={{ fontSize: 12, color: "var(--text2)" }}>
-                Los playoffs se activan cuando todos los partidos de la fase regular de un grupo están jugados.
+              <div style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.6 }}>
+                Se activarán al cerrarse la fase regular de cada categoría.
+                Mientras tanto, puedes ver el escenario actual más abajo.
               </div>
             </div>
           )}
 
-          <p className="section-label">Progreso por categoría</p>
+          <div className="section-title" style={{ marginTop: 20 }}>Estado de la fase regular</div>
 
           {playoffsData.map(data => (
             <CatCard
