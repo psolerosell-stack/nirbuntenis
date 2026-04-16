@@ -22,7 +22,7 @@ function mergeWithSheet(lista) {
 
   // Añadir sólo jugadores nuevos del Sheet (nombre con longitud razonable)
   lista.forEach(item => {
-    const nombre = (item.Nombre || item.nombre || "").trim();
+    const nombre = (item.NombreCompleto || item.Nombre || item.nombre || "").trim();
     const cat    = (item.Categoria || item.categoria || "").trim();
     const grp    = (item.Grupo || item.grupo || "").trim();
 
