@@ -14,8 +14,21 @@ const CAT_COLOR = {
 
 function n(v) { return v === "" ? null : parseInt(v, 10); }
 
+/** Devuelve true si j1 y j2 ya tienen un partido jugado en ese grupo */
+function yaJugaron(partidos, cat, grupoLetra, j1, j2) {
+  return partidos.some(p => {
+    const pCat = p.Categoria ?? "";
+    const pGrp = p.Grupo ?? "";
+    const estado = (p.Estado ?? p.estado ?? "").toLowerCase();
+    const local = p.Jugador_Local ?? p.local ?? "";
+    const visit = p.Jugador_Visitante ?? p.visitante ?? "";
+    return pCat === cat && pGrp === grupoLetra && estado === "jugado" &&
+      ((local === j1 && visit === j2) || (local === j2 && visit === j1));
+  });
+}
+
 // ─── Modal de registro de resultado ────────────────────────────────────────
-function ResultadoModal({ grupos, open, onClose, onGuardado }) {
+function ResultadoModal({ grupos, partidos, open, onClose, onGuardado }) {
   const [cat, setCat] = useState("");
   const [grupoLetra, setGrupoLetra] = useState("");
   const [local, setLocal] = useState("");
@@ -38,7 +51,10 @@ function ResultadoModal({ grupos, open, onClose, onGuardado }) {
 
   const grupoKey = cat && grupoLetra ? `${cat}-${grupoLetra}` : null;
   const jugadores = grupoKey ? (grupos[grupoKey] || []) : [];
-  const visitantesDisp = jugadores.filter(j => j !== local);
+  // Excluir jugadores con los que local ya ha jugado en este grupo
+  const visitantesDisp = jugadores.filter(j =>
+    j !== local && !yaJugaron(partidos, cat, grupoLetra, local, j)
+  );
   const w1 = n(s1l) != null && n(s1v) != null ? (n(s1l) > n(s1v) ? "l" : "v") : null;
   const w2 = n(s2l) != null && n(s2v) != null ? (n(s2l) > n(s2v) ? "l" : "v") : null;
   const showSTB = w1 != null && w2 != null && w1 !== w2;
@@ -47,6 +63,7 @@ function ResultadoModal({ grupos, open, onClose, onGuardado }) {
     if (sending) return; // guard contra doble envío
     setMsg(null);
     if (!grupoKey || !local || !visitante) { setMsg("Selecciona grupo y ambos jugadores"); setMsgType("error"); return; }
+    if (yaJugaron(partidos, cat, grupoLetra, local, visitante)) { setMsg("Este partido ya está registrado."); setMsgType("error"); return; }
     const errors = validarSets(n(s1l), n(s1v), n(s2l), n(s2v), showSTB ? n(stbl) : null, showSTB ? n(stbv) : null);
     if (errors.length > 0) { setMsg(errors.join(" · ")); setMsgType("error"); return; }
 
@@ -124,17 +141,23 @@ function ResultadoModal({ grupos, open, onClose, onGuardado }) {
         )}
 
         {local && (
-          <div className="form-group">
-            <label className="form-label">Jugador visitante</label>
-            <select
-              className="form-select"
-              value={visitante}
-              onChange={e => setVisitante(e.target.value)}
-            >
-              <option value="">— Selecciona —</option>
-              {visitantesDisp.map(j => <option key={j} value={j}>{j}</option>)}
-            </select>
-          </div>
+          visitantesDisp.length === 0 ? (
+            <div className="alert alert-error" style={{ marginTop: 4 }}>
+              {local} ya ha jugado contra todos los jugadores del grupo.
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label">Jugador visitante</label>
+              <select
+                className="form-select"
+                value={visitante}
+                onChange={e => setVisitante(e.target.value)}
+              >
+                <option value="">— Selecciona —</option>
+                {visitantesDisp.map(j => <option key={j} value={j}>{j}</option>)}
+              </select>
+            </div>
+          )
         )}
 
         {visitante && (
@@ -436,6 +459,7 @@ export default function Historial({ irAClasificacion }) {
 
       <ResultadoModal
         grupos={grupos}
+        partidos={partidos}
         open={modalResultado}
         onClose={() => setModalResultado(false)}
         onGuardado={handleGuardado}

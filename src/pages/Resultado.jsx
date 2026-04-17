@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { registrarResultado } from "../api.js";
+import { useState, useEffect } from "react";
+import { registrarResultado, fetchPartidos } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { validarSets } from "../utils/validarSets.js";
 
@@ -7,12 +7,26 @@ const CATEGORIAS = ["Platino", "Oro", "Plata", "Bronce"];
 
 function n(v) { return v === "" ? null : parseInt(v, 10); }
 
+/** Devuelve true si j1 y j2 ya tienen un partido jugado en ese grupo */
+function yaJugaron(partidos, cat, grupoLetra, j1, j2) {
+  return partidos.some(p => {
+    const pCat = p.Categoria ?? "";
+    const pGrp = p.Grupo ?? "";
+    const estado = (p.Estado ?? p.estado ?? "").toLowerCase();
+    const local = p.Jugador_Local ?? p.local ?? "";
+    const visit = p.Jugador_Visitante ?? p.visitante ?? "";
+    return pCat === cat && pGrp === grupoLetra && estado === "jugado" &&
+      ((local === j1 && visit === j2) || (local === j2 && visit === j1));
+  });
+}
+
 function resetForm(setters) {
   setters.forEach(([setter, val]) => setter(val));
 }
 
 export default function Resultado({ onGuardado }) {
   const { grupos } = useGrupos();
+  const [partidos, setPartidos] = useState([]);
   const [cat, setCat] = useState("");
   const [grupoLetra, setGrupoLetra] = useState("");
   const [local, setLocal] = useState("");
@@ -28,9 +42,20 @@ export default function Resultado({ onGuardado }) {
   const [msgType, setMsgType] = useState("success");
   const [sending, setSending] = useState(false);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPartidos(controller.signal)
+      .then(json => { if (Array.isArray(json)) setPartidos(json); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
   const grupoKey = cat && grupoLetra ? `${cat}-${grupoLetra}` : null;
   const jugadores = grupoKey ? (grupos[grupoKey] || []) : [];
-  const visitantesDisp = jugadores.filter(j => j !== local);
+  // Excluir jugadores con los que local ya ha jugado en este grupo
+  const visitantesDisp = jugadores.filter(j =>
+    j !== local && !yaJugaron(partidos, cat, grupoLetra, local, j)
+  );
 
   const w1 = n(s1l) != null && n(s1v) != null ? (n(s1l) > n(s1v) ? "l" : "v") : null;
   const w2 = n(s2l) != null && n(s2v) != null ? (n(s2l) > n(s2v) ? "l" : "v") : null;
@@ -41,6 +66,9 @@ export default function Resultado({ onGuardado }) {
     setMsg(null);
     if (!grupoKey || !local || !visitante) {
       setMsg("Selecciona grupo y ambos jugadores"); setMsgType("error"); return;
+    }
+    if (yaJugaron(partidos, cat, grupoLetra, local, visitante)) {
+      setMsg("Este partido ya está registrado."); setMsgType("error"); return;
     }
     const errors = validarSets(n(s1l), n(s1v), n(s2l), n(s2v), showSTB ? n(stbl) : null, showSTB ? n(stbv) : null);
     if (errors.length > 0) { setMsg(errors.join(" · ")); setMsgType("error"); return; }
@@ -118,13 +146,19 @@ export default function Resultado({ onGuardado }) {
 
           {/* Jugador visitante */}
           {local && (
-            <div className="form-group">
-              <label className="form-label">Jugador visitante</label>
-              <select className="form-select" value={visitante} onChange={e => setVisitante(e.target.value)}>
-                <option value="">— Selecciona —</option>
-                {visitantesDisp.map(j => <option key={j} value={j}>{j}</option>)}
-              </select>
-            </div>
+            visitantesDisp.length === 0 ? (
+              <div className="alert alert-error" style={{ marginTop: 4 }}>
+                {local} ya ha jugado contra todos los jugadores del grupo.
+              </div>
+            ) : (
+              <div className="form-group">
+                <label className="form-label">Jugador visitante</label>
+                <select className="form-select" value={visitante} onChange={e => setVisitante(e.target.value)}>
+                  <option value="">— Selecciona —</option>
+                  {visitantesDisp.map(j => <option key={j} value={j}>{j}</option>)}
+                </select>
+              </div>
+            )
           )}
 
           {/* Sets */}
