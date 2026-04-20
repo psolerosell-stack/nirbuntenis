@@ -597,10 +597,16 @@ html, body, #root {
   padding: 11px 14px 11px 17px;
   border-bottom: 1px solid var(--border);
   border-left: 3px solid var(--bg3);
-  transition: border-left-color 0.15s;
 }
-.norma-bloque:hover { border-left-color: var(--accent); }
 .norma-bloque:last-child { border-bottom: none; }
+
+/* Colores por bloque: Formato · Puntuación · Plazos · Ascensos · Desempate · NirbunScore */
+.norma-bloque:nth-child(1) { border-left-color: #4F81BD; }
+.norma-bloque:nth-child(2) { border-left-color: #d4b430; }
+.norma-bloque:nth-child(3) { border-left-color: #4caf50; }
+.norma-bloque:nth-child(4) { border-left-color: #c8783a; }
+.norma-bloque:nth-child(5) { border-left-color: #9898b0; }
+.norma-bloque:nth-child(6) { border-left-color: var(--accent); }
 
 .norma-titulo {
   font-size: 12px;
