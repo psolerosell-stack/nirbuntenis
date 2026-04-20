@@ -23,12 +23,10 @@ const TABS = [
     label: "Clasificación",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6" />
-        <line x1="8" y1="12" x2="21" y2="12" />
-        <line x1="8" y1="18" x2="21" y2="18" />
-        <line x1="3" y1="6" x2="3.01" y2="6" />
-        <line x1="3" y1="12" x2="3.01" y2="12" />
-        <line x1="3" y1="18" x2="3.01" y2="18" />
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6"  y1="20" x2="6"  y2="14" />
+        <line x1="2"  y1="20" x2="22" y2="20" />
       </svg>
     ),
   },
@@ -36,31 +34,11 @@ const TABS = [
     id: "partidos",
     label: "Partidos",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-        <defs>
-          <clipPath id="rc1"><circle cx="5.5" cy="5.5" r="4.2"/></clipPath>
-          <clipPath id="rc2"><circle cx="18.5" cy="5.5" r="4.2"/></clipPath>
-        </defs>
-        <circle cx="5.5" cy="5.5" r="4.2" strokeWidth="1.7"/>
-        <g clipPath="url(#rc1)" strokeWidth="0.9">
-          <line x1="1" y1="3.8" x2="10" y2="3.8"/>
-          <line x1="1" y1="5.5" x2="10" y2="5.5"/>
-          <line x1="1" y1="7.2" x2="10" y2="7.2"/>
-          <line x1="3.8" y1="1" x2="3.8" y2="10"/>
-          <line x1="5.5" y1="1" x2="5.5" y2="10"/>
-          <line x1="7.2" y1="1" x2="7.2" y2="10"/>
-        </g>
-        <line x1="8.8" y1="8.8" x2="20" y2="20" strokeWidth="1.9"/>
-        <circle cx="18.5" cy="5.5" r="4.2" strokeWidth="1.7"/>
-        <g clipPath="url(#rc2)" strokeWidth="0.9">
-          <line x1="14" y1="3.8" x2="23" y2="3.8"/>
-          <line x1="14" y1="5.5" x2="23" y2="5.5"/>
-          <line x1="14" y1="7.2" x2="23" y2="7.2"/>
-          <line x1="16.8" y1="1" x2="16.8" y2="10"/>
-          <line x1="18.5" y1="1" x2="18.5" y2="10"/>
-          <line x1="20.2" y1="1" x2="20.2" y2="10"/>
-        </g>
-        <line x1="15.2" y1="8.8" x2="4" y2="20" strokeWidth="1.9"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="7"  cy="6.5" rx="3.5" ry="4.5" />
+        <line x1="10"  y1="10.5" x2="21" y2="22" />
+        <ellipse cx="17" cy="6.5" rx="3.5" ry="4.5" />
+        <line x1="14"  y1="10.5" x2="3"  y2="22" />
       </svg>
     ),
   },
