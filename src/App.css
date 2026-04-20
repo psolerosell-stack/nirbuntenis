@@ -1,7 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --platino: #5b9bd5;
+  --platino: #4F81BD;   /* unificado con CAT_COLOR en JSX */
   --oro:     #d4b430;
   --plata:   #9898b0;
   --bronce:  #c8783a;
@@ -22,7 +22,7 @@ html, body, #root {
   height: 100%;
   background: #0e0e1a;
   color: var(--text1);
-  font-family: system-ui, -apple-system, 'Inter', sans-serif;
+  font-family: 'Geist Variable', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
@@ -81,10 +81,9 @@ html, body, #root {
   background: none;
   cursor: pointer;
   color: var(--text2);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   padding: 0;
   transition: color 0.15s;
   position: relative;
@@ -308,15 +307,17 @@ html, body, #root {
 .match-vs { color: var(--text2); font-size: 11px; flex-shrink: 0; }
 
 /* ── Section titles ── */
-.section-title {
+/* .section-label es alias de .section-title */
+.section-title, .section-label {
   font-size: 10px;
   font-weight: 700;
   color: var(--text2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin: 18px 0 8px;
+  display: block;
 }
-.section-title:first-child { margin-top: 0; }
+.section-title:first-child, .section-label:first-child { margin-top: 0; }
 
 /* ── Form (Resultado) ── */
 .form-group { margin-bottom: 14px; }
@@ -375,7 +376,7 @@ html, body, #root {
 .btn-primary {
   width: 100%;
   padding: 13px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   background: var(--accent);
   color: #fff;
@@ -388,7 +389,7 @@ html, body, #root {
 }
 
 .btn-primary:active  { opacity: 0.8; }
-.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .alert {
   padding: 11px 13px;
@@ -593,10 +594,12 @@ html, body, #root {
 }
 
 .norma-bloque {
-  padding: 11px 14px;
+  padding: 11px 14px 11px 17px;
   border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--bg3);
+  transition: border-left-color 0.15s;
 }
-
+.norma-bloque:hover { border-left-color: var(--accent); }
 .norma-bloque:last-child { border-bottom: none; }
 
 .norma-titulo {
@@ -1292,16 +1295,20 @@ html, body, #root {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: none;
-  border: none;
+  background: rgba(55, 77, 245, 0.08);
+  border: 1px solid rgba(55, 77, 245, 0.18);
+  border-radius: 10px;
   color: var(--accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  padding: 0 0 16px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
   letter-spacing: 0.01em;
+  min-height: 44px;
+  transition: background 0.15s;
 }
-.back-btn:hover { opacity: 0.75; }
+.back-btn:hover { background: rgba(55, 77, 245, 0.15); }
 
 /* Header */
 .perfil-header {

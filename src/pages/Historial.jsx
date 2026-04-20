@@ -370,7 +370,7 @@ export default function Historial({ irAClasificacion }) {
 
       {!loading && !error && (
         <>
-          <p className="section-label">Temporada</p>
+          <div className="section-label">Temporada</div>
           <div className="temporada-card">
             <div className="temporada-top">
               <span className="temporada-name">{temporada}</span>
@@ -387,7 +387,7 @@ export default function Historial({ irAClasificacion }) {
             </div>
           </div>
 
-          <p className="section-label">Posiciones actuales</p>
+          <div className="section-label">Posiciones actuales</div>
           <div style={{ fontSize: 12, color: "var(--text2)", marginBottom: 12 }}>
             Ascensos y descensos proyectados con la clasificación actual
           </div>
@@ -403,36 +403,36 @@ export default function Historial({ irAClasificacion }) {
             <span className="arrow-down">↓</span> Desciende
           </div>
 
-          <p className="section-label">Normas</p>
+          <div className="section-label">Normas</div>
           <div className="normas-card">
             <div className="norma-bloque">
-              <div className="norma-titulo">🎾 Formato de partido</div>
+              <div className="norma-titulo">Formato de partido</div>
               <div className="norma-item">• 2 sets al mejor de 3 con tie-break a 7 si 6-6</div>
               <div className="norma-item">• Si hay 1-1 en sets, se juega un super tie-break al mejor de 10 (mínimo 2 de diferencia)</div>
             </div>
             <div className="norma-bloque">
-              <div className="norma-titulo">📊 Puntuación</div>
+              <div className="norma-titulo">Puntuación</div>
               <div className="norma-item">• Victoria 2-0: <strong>4 pts</strong> ganador · <strong>1 pt</strong> perdedor</div>
               <div className="norma-item">• Victoria 2-1: <strong>3 pts</strong> ganador · <strong>2 pts</strong> perdedor</div>
             </div>
             <div className="norma-bloque">
-              <div className="norma-titulo">📅 Plazos y presentación</div>
+              <div className="norma-titulo">Plazos y presentación</div>
               <div className="norma-item">• Los partidos se deben acordar y jugar dentro del plazo de cada jornada</div>
               <div className="norma-item">• No presentarse sin aviso previo equivale a una derrota por 6-0, 6-0 (0 puntos)</div>
               <div className="norma-item">• Los resultados se deben registrar en la app en un plazo máximo de 48 h</div>
             </div>
             <div className="norma-bloque">
-              <div className="norma-titulo">🔼 Ascensos y descensos</div>
+              <div className="norma-titulo">Ascensos y descensos</div>
               <div className="norma-item">• 1º de cada grupo: <strong>asciende directamente</strong></div>
               <div className="norma-item">• 2º y 3º: <strong>playoff de ascenso/descenso</strong> entre grupos</div>
               <div className="norma-item">• Último de cada grupo: <strong>desciende directamente</strong></div>
             </div>
             <div className="norma-bloque">
-              <div className="norma-titulo">⚖️ Desempate</div>
+              <div className="norma-titulo">Desempate</div>
               <div className="norma-item">En caso de igualdad de puntos: head-to-head → diferencia de sets → diferencia de juegos → juegos totales</div>
             </div>
             <div className="norma-bloque">
-              <div className="norma-titulo">📈 NirbunScore (1–10)</div>
+              <div className="norma-titulo">NirbunScore (1–10)</div>
               <div className="norma-item">Indicador global de rendimiento de cada jugador. Se calcula combinando 5 factores:</div>
               <div className="norma-item" style={{ marginTop: 6 }}>
                 <strong>• Categoría de liga</strong> <span style={{ color: "var(--text2)" }}>(30 %)</span> — Platino 10 · Oro 7.5 · Plata 5 · Bronce 2.5

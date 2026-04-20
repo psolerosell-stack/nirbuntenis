@@ -203,7 +203,10 @@ export default function PerfilJugador({ jugador, onVolver, irAPerfil }) {
 
   return (
     <div className="page-content">
-      <button className="back-btn" onClick={onVolver}>← Atrás</button>
+      <button className="back-btn" onClick={onVolver}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Atrás
+      </button>
 
       {loading ? (
         <div className="empty-state">Cargando perfil...</div>
