@@ -158,7 +158,9 @@ export function calcPlayoffs(grupos, partidos) {
     const nA = clasiA.length, nB = clasiB.length;
 
     const promovidos = [clasiA[0], clasiB[0]].filter(Boolean).map(r => r.jugador);
-    const descendidos = [clasiA[nA - 1], clasiB[nB - 1]].filter(Boolean).map(r => r.jugador).filter(j => !promovidos.includes(j));
+    // Bronce is the lowest category — no relegation
+    const descendidos = cat === "Bronce" ? [] :
+      [clasiA[nA - 1], clasiB[nB - 1]].filter(Boolean).map(r => r.jugador).filter(j => !promovidos.includes(j));
 
     const matches = [];
     if (nA >= 2 && nB >= 2) {
@@ -167,7 +169,8 @@ export function calcPlayoffs(grupos, partidos) {
       const partido = partidos.find(p => p.grupo === grupoKey && ((p.local === j1 && p.visitante === j2) || (p.local === j2 && p.visitante === j1))) || null;
       matches.push({ tipo: "ascenso", j1, gJ1: gA, j2, gJ2: gB, grupoKey, grupoPartido: "PO-Asc", partido });
     }
-    if (nA > 3 && nB > 3) {
+    // Bronce has no relegation playoff either
+    if (nA > 3 && nB > 3 && cat !== "Bronce") {
       const grupoKey = `${cat}-PO-Des`;
       const j1 = clasiA[nA - 2].jugador, j2 = clasiB[nB - 2].jugador;
       const partido = partidos.find(p => p.grupo === grupoKey && ((p.local === j1 && p.visitante === j2) || (p.local === j2 && p.visitante === j1))) || null;

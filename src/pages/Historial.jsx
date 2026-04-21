@@ -275,8 +275,8 @@ function BracketCategoria({ cat, partidos, grupos, irAClasificacion }) {
                 let arrow = null, arrowClass = "";
                 if (i === 0) { arrow = "↑"; arrowClass = "arrow-up"; }
                 else if (i === 1) { arrow = "PO↑"; arrowClass = "arrow-po"; }
-                else if (i === total - 2 && total > 3) { arrow = "PO↓"; arrowClass = "arrow-po"; }
-                else if (i === total - 1) { arrow = "↓"; arrowClass = "arrow-down"; }
+                else if (cat !== "Bronce" && i === total - 2 && total > 3) { arrow = "PO↓"; arrowClass = "arrow-po"; }
+                else if (cat !== "Bronce" && i === total - 1) { arrow = "↓"; arrowClass = "arrow-down"; }
                 return (
                   <div className="bracket-player" key={row.jugador}>
                     {arrow

@@ -75,19 +75,19 @@ function ganador(p) {
   return setsL > setsV ? { winner: p.local, loser: p.visitante } : { winner: p.visitante, loser: p.local };
 }
 
-function getRowClass(idx, total) {
+function getRowClass(idx, total, cat) {
   if (idx === 0) return "row-up";
   if (idx === 1) return "row-po-up";
-  if (idx === total - 2 && total > 3) return "row-po-down";
-  if (idx === total - 1) return "row-down";
+  if (cat !== "Bronce" && idx === total - 2 && total > 3) return "row-po-down";
+  if (cat !== "Bronce" && idx === total - 1) return "row-down";
   return "";
 }
 
-function getBadge(idx, total) {
+function getBadge(idx, total, cat) {
   if (idx === 0) return <span className="badge badge-up">↑</span>;
   if (idx === 1) return <span className="badge badge-po-up">PO↑</span>;
-  if (idx === total - 2 && total > 3) return <span className="badge badge-po-down">PO↓</span>;
-  if (idx === total - 1) return <span className="badge badge-down">↓</span>;
+  if (cat !== "Bronce" && idx === total - 2 && total > 3) return <span className="badge badge-po-down">PO↓</span>;
+  if (cat !== "Bronce" && idx === total - 1) return <span className="badge badge-down">↓</span>;
   return null;
 }
 
@@ -219,7 +219,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
           </thead>
           <tbody>
             {clasi.map((row, i) => (
-              <tr key={row.jugador} className={getRowClass(i, clasi.length)}>
+              <tr key={row.jugador} className={getRowClass(i, clasi.length, cat)}>
                 <td className="rank-num">{i + 1}</td>
                 <td>
                   <span
@@ -228,7 +228,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
                   >
                     {row.jugador}
                   </span>
-                  {getBadge(i, clasi.length)}
+                  {getBadge(i, clasi.length, cat)}
                 </td>
                 <td style={{ fontWeight: 700 }}>{row.pts}</td>
                 <td style={{ color: "var(--text2)" }}>{row.pl}</td>
@@ -245,8 +245,12 @@ export default function Clasificacion({ navTo, irAPerfil }) {
       <div style={{ marginTop: 14, fontSize: 11, color: "var(--text2)", lineHeight: 1.8 }}>
         <span className="badge badge-up">↑</span> Asciende &nbsp;
         <span className="badge badge-po-up">PO↑</span> Playoff Ascenso &nbsp;
-        <span className="badge badge-po-down">PO↓</span> Playoff Descenso &nbsp;
-        <span className="badge badge-down">↓</span> Desciende
+        {cat !== "Bronce" && (
+          <>
+            <span className="badge badge-po-down">PO↓</span> Playoff Descenso &nbsp;
+            <span className="badge badge-down">↓</span> Desciende
+          </>
+        )}
       </div>
 
       {!loading && !error && (
