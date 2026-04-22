@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchPartidos, registrarResultado, clearLocalCache } from "../api.js";
+import { fetchPartidos, fetchConfig, registrarResultado, clearLocalCache } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcPlayoffs } from "../engine.js";
 import { validarSets } from "../utils/validarSets.js";
@@ -24,12 +24,14 @@ function normalizarEngine(p) {
     s2l: Number(p.Set2_L), s2v: Number(p.Set2_V),
     stbl, stbv,
     estado: (p.Estado ?? "").toLowerCase(),
+    fase: (p.Fase ?? p.fase ?? "liga").toLowerCase(),
     Ganador: p.Ganador,
+    temporada: (p.Temporada ?? "").trim(),
   };
 }
 
 
-function ScoreModal({ open, onClose, match, cat, onSaved }) {
+function ScoreModal({ open, onClose, match, cat, temporada, onSaved }) {
   const [s1l, setS1l] = useState("");
   const [s1v, setS1v] = useState("");
   const [s2l, setS2l] = useState("");
@@ -52,7 +54,7 @@ function ScoreModal({ open, onClose, match, cat, onSaved }) {
     setSending(true);
     try {
       await registrarResultado({
-        temporada: "2026-Primavera",
+        temporada: temporada || "2026-Primavera",
         categoria: cat,
         grupo: match.grupoPartido,
         local: match.j1,
@@ -141,29 +143,60 @@ function formatScorePartido(p) {
   return sets.join("  ");
 }
 
+function poMatchLabel(tipo) {
+  switch(tipo) {
+    case "semi1": return "Semifinal · 1A vs 2B";
+    case "semi2": return "Semifinal · 2A vs 1B";
+    case "final": return "🏆 Final";
+    case "ascenso": return "Playoff Ascenso";
+    case "descenso": return "Playoff Descenso";
+    default: return tipo;
+  }
+}
+function poMatchBadge(tipo) {
+  switch(tipo) {
+    case "semi1": case "semi2": return "F4";
+    case "final": return "Final";
+    case "ascenso": return "PO↑";
+    case "descenso": return "PO↓";
+    default: return tipo;
+  }
+}
+function poMatchColor(tipo) {
+  if (tipo === "final") return "#f9a825";
+  if (tipo === "descenso") return "#e65100";
+  return "#558b2f";
+}
+
 function PlayoffMatchCard({ match, cat, onRegistrar }) {
   const { partido } = match;
   const jugado = partido && partido.estado === "jugado";
   const ganador = jugado ? (partido.Ganador || null) : null;
+  const esFinal = match.tipo === "final";
 
-  const tipoLabel = match.tipo === "ascenso" ? "Playoff Ascenso" : "Playoff Descenso";
-  const tipoColor = match.tipo === "ascenso" ? "#558b2f" : "#e65100";
+  const tipoLabel = poMatchLabel(match.tipo);
+  const tipoColor = poMatchColor(match.tipo);
 
   return (
-    <div className={`playoff-match-card ${match.tipo === "ascenso" ? "ascenso" : "descenso"}`}>
+    <div className={`playoff-match-card ${match.tipo === "descenso" ? "descenso" : "ascenso"}`}
+      style={esFinal ? { borderColor: "#f9a825", borderWidth: 2 } : {}}>
       <div className="playoff-match-header" style={{ color: tipoColor }}>
-        {match.tipo === "ascenso" ? "PO↑" : "PO↓"} {tipoLabel}
+        <span style={{ marginRight: 6 }}>{poMatchBadge(match.tipo)}</span>{tipoLabel}
       </div>
 
       <div className="playoff-vs-row">
         <div className={`playoff-vs-player${ganador === match.j1 ? " winner" : ""}`}>
-          <span className="playoff-vs-name">{match.j1}</span>
-          <span className="playoff-vs-grupo">{match.gJ1}</span>
+          <span className="playoff-vs-name" style={{ color: match.j1 === "?" ? "var(--text2)" : undefined }}>
+            {match.j1 === "?" ? "Por determinar" : match.j1}
+          </span>
+          {match.gJ1 && <span className="playoff-vs-grupo">{match.gJ1}</span>}
         </div>
         <span className="playoff-vs-sep">vs</span>
         <div className={`playoff-vs-player right${ganador === match.j2 ? " winner" : ""}`}>
-          <span className="playoff-vs-name">{match.j2}</span>
-          <span className="playoff-vs-grupo">{match.gJ2}</span>
+          <span className="playoff-vs-name" style={{ color: match.j2 === "?" ? "var(--text2)" : undefined }}>
+            {match.j2 === "?" ? "Por determinar" : match.j2}
+          </span>
+          {match.gJ2 && <span className="playoff-vs-grupo">{match.gJ2}</span>}
         </div>
       </div>
 
@@ -171,25 +204,31 @@ function PlayoffMatchCard({ match, cat, onRegistrar }) {
         <div className="playoff-result-row">
           <span style={{ color: "var(--text2)" }}>{formatScorePartido(partido)}</span>
           {ganador && (
-            <span style={{ marginLeft: 8, color: "#3a9c6a", fontWeight: 700 }}>
-              Ganador: {ganador}
+            <span style={{ marginLeft: 8, color: esFinal ? "#f9a825" : "#3a9c6a", fontWeight: 700 }}>
+              {esFinal ? "🏆 Campeón: " : "Ganador: "}{ganador}
             </span>
           )}
         </div>
       )}
 
-      {!jugado && (
+      {!jugado && match.disponible !== false && (
         <button className="btn-primary" style={{ width: "100%", marginTop: 12 }} onClick={() => onRegistrar(match)}>
           Registrar resultado
         </button>
+      )}
+      {!jugado && match.disponible === false && (
+        <div style={{ fontSize: 11, color: "var(--text2)", marginTop: 8, textAlign: "center" }}>
+          Disponible tras las semifinales
+        </div>
       )}
     </div>
   );
 }
 
 function CatCard({ data, onRegistrar }) {
-  const { cat, gA, gB, expA, expB, jugadosA, jugadosB, completo, matches, promovidos, descendidos } = data;
+  const { cat, gA, gB, expA, expB, jugadosA, jugadosB, completo, matches, promovidos, descendidos, campeon } = data;
   const color = CAT_COLOR[cat];
+  const esPlatino = cat === "Platino";
   const hayProvisional = !completo && (jugadosA + jugadosB) > 0 && (promovidos.length > 0 || matches.length > 0);
   const letraA = gA.split("-")[1] ?? "A";
   const letraB = gB.split("-")[1] ?? "B";
@@ -202,8 +241,12 @@ function CatCard({ data, onRegistrar }) {
         <div className="playoff-cat-title">
           <span className="bracket-dot" style={{ background: color, marginRight: 6 }} />
           {cat}
+          {esPlatino && <span style={{ marginLeft: 8, fontSize: 11, color: "#f9a825", fontWeight: 700 }}>Final 4</span>}
         </div>
-        {completo && <span className="playoff-completo-badge">Fase regular completada</span>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {campeon && <span style={{ fontSize: 12, color: "#f9a825", fontWeight: 700 }}>🏆 {campeon}</span>}
+          {completo && <span className="playoff-completo-badge">Fase regular completada</span>}
+        </div>
       </div>
 
       <div className="playoff-progreso">
@@ -231,18 +274,19 @@ function CatCard({ data, onRegistrar }) {
           </div>
 
           {/* Cruces de playoff — foco principal */}
-          {matches.map((m, idx) => (
+          {matches.filter(m => m.disponible !== false || m.tipo !== "final").map((m, idx) => (
             <div key={m.tipo} className="prov-match-block" style={idx > 0 ? { borderTop: "1px solid var(--border)" } : {}}>
               <div className="prov-match-type">
-                <span className={`badge ${m.tipo === "ascenso" ? "badge-po-up" : "badge-po-down"}`}>
-                  {m.tipo === "ascenso" ? "PO↑" : "PO↓"}
+                <span className={`badge ${m.tipo === "descenso" ? "badge-po-down" : "badge-po-up"}`}
+                  style={m.tipo === "final" ? { background: "#f9a825", color: "#000" } : {}}>
+                  {poMatchBadge(m.tipo)}
                 </span>
-                {m.tipo === "ascenso" ? "Playoff ascenso" : "Playoff descenso"}
+                {poMatchLabel(m.tipo)}
               </div>
               <div className="prov-match-players">
-                <span className="prov-match-name">{m.j1}</span>
+                <span className="prov-match-name">{m.j1 === "?" ? "Por determinar" : m.j1}</span>
                 <span className="prov-vs">vs</span>
-                <span className="prov-match-name" style={{ textAlign: "right" }}>{m.j2}</span>
+                <span className="prov-match-name" style={{ textAlign: "right" }}>{m.j2 === "?" ? "Por determinar" : m.j2}</span>
               </div>
             </div>
           ))}
@@ -269,8 +313,8 @@ function CatCard({ data, onRegistrar }) {
 
       {completo && (
         <div className="playoff-bracket">
-          {/* Direct promotions */}
-          {promovidos.length > 0 && (
+          {/* Direct promotions (no Platino) */}
+          {!esPlatino && promovidos.length > 0 && (
             <div className="bracket-direct-row" style={{ marginBottom: 10 }}>
               {promovidos.map((j, i) => (
                 <div className="bracket-direct" key={j} style={{ borderTop: "2px solid #2e7d32" }}>
@@ -315,6 +359,7 @@ function CatCard({ data, onRegistrar }) {
 export default function Playoffs({ embedded = false }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
+  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(null); // { match, cat }
@@ -322,9 +367,10 @@ export default function Playoffs({ embedded = false }) {
   function loadData(signal) {
     setLoading(true);
     setError(null);
-    fetchPartidos(signal)
-      .then(pJson => {
+    Promise.all([fetchPartidos(signal), fetchConfig(signal)])
+      .then(([pJson, cJson]) => {
         setPartidos(Array.isArray(pJson) ? pJson : []);
+        setConfig(cJson || {});
         setLoading(false);
       })
       .catch(err => {
@@ -338,7 +384,12 @@ export default function Playoffs({ embedded = false }) {
     return () => controller.abort();
   }, []);
 
-  const partidosEngine = partidos.map(normalizarEngine);
+  const temporada = config?.temporada ?? "";
+  const todosEngine = partidos.map(normalizarEngine);
+  // Filtra por temporada activa (sin temporada → pertenece a la actual)
+  const partidosEngine = temporada
+    ? todosEngine.filter(p => !p.temporada || p.temporada === temporada)
+    : todosEngine;
   const playoffsData = calcPlayoffs(grupos, partidosEngine);
   const alguno = playoffsData.some(d => d.completo);
 
@@ -390,6 +441,7 @@ export default function Playoffs({ embedded = false }) {
           onClose={() => setModal(null)}
           match={modal.match}
           cat={modal.cat}
+          temporada={temporada}
           onSaved={handleSaved}
         />
       )}

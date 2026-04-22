@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { fetchPartidos, clearLocalCache } from "../api.js";
+import { fetchPartidos, fetchConfig, clearLocalCache } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcClasificacion } from "../engine.js";
 import Playoffs from "./Playoffs.jsx";
@@ -26,6 +26,8 @@ function normalizar(p) {
     stbl, stbv,
     fecha: p.Fecha ?? p.fecha ?? "",
     estado: (p.Estado ?? p.estado ?? "").toLowerCase(),
+    fase: (p.Fase ?? p.fase ?? "liga").toLowerCase(),
+    temporada: (p.Temporada ?? "").trim(),
   };
 }
 
@@ -76,6 +78,12 @@ function ganador(p) {
 }
 
 function getRowClass(idx, total, cat) {
+  if (cat === "Platino") {
+    if (idx === 0 || idx === 1) return "row-po-up";
+    if (idx === total - 2 && total > 3) return "row-po-down";
+    if (idx === total - 1) return "row-down";
+    return "";
+  }
   if (idx === 0) return "row-up";
   if (idx === 1) return "row-po-up";
   if (cat !== "Bronce" && idx === total - 2 && total > 3) return "row-po-down";
@@ -84,6 +92,12 @@ function getRowClass(idx, total, cat) {
 }
 
 function getBadge(idx, total, cat) {
+  if (cat === "Platino") {
+    if (idx === 0 || idx === 1) return <span className="badge badge-po-up">F4</span>;
+    if (idx === total - 2 && total > 3) return <span className="badge badge-po-down">PO↓</span>;
+    if (idx === total - 1) return <span className="badge badge-down">↓</span>;
+    return null;
+  }
   if (idx === 0) return <span className="badge badge-up">↑</span>;
   if (idx === 1) return <span className="badge badge-po-up">PO↑</span>;
   if (cat !== "Bronce" && idx === total - 2 && total > 3) return <span className="badge badge-po-down">PO↓</span>;
@@ -106,6 +120,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
   }, [navTo?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [partidos, setPartidos] = useState([]);
+  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -115,10 +130,14 @@ export default function Clasificacion({ navTo, irAPerfil }) {
     setLoading(true);
     setError(null);
 
-    fetchPartidos(controller.signal)
-      .then(json => {
-        const lista = Array.isArray(json) ? json.map(normalizar) : [];
+    Promise.all([
+      fetchPartidos(controller.signal),
+      fetchConfig(controller.signal),
+    ])
+      .then(([pJson, cJson]) => {
+        const lista = Array.isArray(pJson) ? pJson.map(normalizar) : [];
         setPartidos(lista);
+        setConfig(cJson || {});
         setLoading(false);
       })
       .catch(err => {
@@ -136,7 +155,14 @@ export default function Clasificacion({ navTo, irAPerfil }) {
   const grupoKey = `${cat}-${grupo}`;
   const color = CAT_COLOR[cat];
   const jugadores = grupos[grupoKey] || [];
-  const clasi = loading ? [] : calcClasificacion(jugadores, partidos, grupoKey);
+
+  // Filtra partidos por temporada activa (si no tiene temporada asignada, cuenta como actual)
+  const temporadaActiva = config?.temporada || "";
+  const partidosFiltrados = temporadaActiva
+    ? partidos.filter(p => !p.temporada || p.temporada === temporadaActiva)
+    : partidos;
+
+  const clasi = loading ? [] : calcClasificacion(jugadores, partidosFiltrados, grupoKey);
 
   return (
     <div className="page-content">
@@ -151,7 +177,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         </button>
       </div>
 
-      {/* Vista toggle */}
+      {/* Vista toggle — Playoffs solo visible cuando está activado en Config */}
       <div className="vista-toggle" style={{ marginBottom: 12 }}>
         <button
           className={`vista-btn ${vista === "ranking" ? "active" : ""}`}
@@ -159,15 +185,17 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         >
           Ranking
         </button>
-        <button
-          className={`vista-btn ${vista === "playoffs" ? "active" : ""}`}
-          onClick={() => setVista("playoffs")}
-        >
-          Playoffs
-        </button>
+        {config?.playoffs_activos && (
+          <button
+            className={`vista-btn ${vista === "playoffs" ? "active" : ""}`}
+            onClick={() => setVista("playoffs")}
+          >
+            🏆 Playoffs
+          </button>
+        )}
       </div>
 
-      {vista === "playoffs" && <Playoffs embedded />}
+      {vista === "playoffs" && config?.playoffs_activos && <Playoffs embedded />}
 
       {vista === "ranking" && (
         <>
@@ -243,12 +271,22 @@ export default function Clasificacion({ navTo, irAPerfil }) {
 
       {/* Legend */}
       <div style={{ marginTop: 14, fontSize: 11, color: "var(--text2)", lineHeight: 1.8 }}>
-        <span className="badge badge-up">↑</span> Asciende &nbsp;
-        <span className="badge badge-po-up">PO↑</span> Playoff Ascenso &nbsp;
-        {cat !== "Bronce" && (
+        {cat === "Platino" ? (
           <>
+            <span className="badge badge-po-up">F4</span> Final 4 &nbsp;
             <span className="badge badge-po-down">PO↓</span> Playoff Descenso &nbsp;
             <span className="badge badge-down">↓</span> Desciende
+          </>
+        ) : (
+          <>
+            <span className="badge badge-up">↑</span> Asciende &nbsp;
+            <span className="badge badge-po-up">PO↑</span> Playoff Ascenso &nbsp;
+            {cat !== "Bronce" && (
+              <>
+                <span className="badge badge-po-down">PO↓</span> Playoff Descenso &nbsp;
+                <span className="badge badge-down">↓</span> Desciende
+              </>
+            )}
           </>
         )}
       </div>
@@ -258,7 +296,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
           {/* ── Últimos resultados ── */}
           <div className="section-title" style={{ marginTop: 20 }}>Últimos resultados</div>
           {(() => {
-            const jugados = partidos
+            const jugados = partidosFiltrados
               .filter(p => p.grupo === grupoKey && p.estado === "jugado")
               .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
               .slice(0, 3);
@@ -297,7 +335,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
           {/* ── Partidos pendientes ── */}
           {(() => {
             // Calcula parejas pendientes: round-robin (cada jugador vs todos una vez)
-            const jugadosGrupo = partidos.filter(p => p.grupo === grupoKey && p.estado === "jugado");
+            const jugadosGrupo = partidosFiltrados.filter(p => p.grupo === grupoKey && p.estado === "jugado");
             const parejaJugada = (a, b) => jugadosGrupo.some(p =>
               (p.local === a && p.visitante === b) || (p.local === b && p.visitante === a)
             );
@@ -305,7 +343,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
             for (let i = 0; i < jugadores.length; i++) {
               for (let j = i + 1; j < jugadores.length; j++) {
                 if (!parejaJugada(jugadores[i], jugadores[j])) {
-                  const apiFecha = partidos.find(p =>
+                  const apiFecha = partidosFiltrados.find(p =>
                     p.grupo === grupoKey && p.estado === "pendiente" &&
                     ((p.local === jugadores[i] && p.visitante === jugadores[j]) ||
                      (p.local === jugadores[j] && p.visitante === jugadores[i]))

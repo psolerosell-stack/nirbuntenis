@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchPartidos, fetchConfig, registrarResultado } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
-import { calcClasificacion } from "../engine.js";
+import { calcClasificacion, calcPlayoffs, formatScore } from "../engine.js";
 import { validarSets } from "../utils/validarSets.js";
 
 const CATEGORIAS = ["Platino", "Oro", "Plata", "Bronce"];
@@ -28,7 +28,7 @@ function yaJugaron(partidos, cat, grupoLetra, j1, j2) {
 }
 
 // ─── Modal de registro de resultado ────────────────────────────────────────
-function ResultadoModal({ grupos, partidos, open, onClose, onGuardado }) {
+function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado }) {
   const [cat, setCat] = useState("");
   const [grupoLetra, setGrupoLetra] = useState("");
   const [local, setLocal] = useState("");
@@ -70,7 +70,7 @@ function ResultadoModal({ grupos, partidos, open, onClose, onGuardado }) {
     setSending(true);
     try {
       await registrarResultado({
-        temporada: "2026-Primavera",
+        temporada: temporada || "2026-Primavera",
         categoria: cat, grupo: grupoLetra,
         local, visitante,
         s1l: n(s1l), s1v: n(s1v),
@@ -236,6 +236,9 @@ function normalizarEngine(p) {
     s2l: Number(p.Set2_L), s2v: Number(p.Set2_V),
     stbl, stbv,
     estado: (p.Estado ?? "").toLowerCase(),
+    fase: (p.Fase ?? p.fase ?? "liga").toLowerCase(),
+    Ganador: p.Ganador,
+    temporada: (p.Temporada ?? "").trim(),
   };
 }
 
@@ -273,10 +276,16 @@ function BracketCategoria({ cat, partidos, grupos, irAClasificacion }) {
               ) : rows.map((row, i) => {
                 const total = rows.length;
                 let arrow = null, arrowClass = "";
-                if (i === 0) { arrow = "↑"; arrowClass = "arrow-up"; }
-                else if (i === 1) { arrow = "PO↑"; arrowClass = "arrow-po"; }
-                else if (cat !== "Bronce" && i === total - 2 && total > 3) { arrow = "PO↓"; arrowClass = "arrow-po"; }
-                else if (cat !== "Bronce" && i === total - 1) { arrow = "↓"; arrowClass = "arrow-down"; }
+                if (cat === "Platino") {
+                  if (i === 0 || i === 1) { arrow = "F4"; arrowClass = "arrow-po"; }
+                  else if (i === total - 2 && total > 3) { arrow = "PO↓"; arrowClass = "arrow-po"; }
+                  else if (i === total - 1) { arrow = "↓"; arrowClass = "arrow-down"; }
+                } else {
+                  if (i === 0) { arrow = "↑"; arrowClass = "arrow-up"; }
+                  else if (i === 1) { arrow = "PO↑"; arrowClass = "arrow-po"; }
+                  else if (cat !== "Bronce" && i === total - 2 && total > 3) { arrow = "PO↓"; arrowClass = "arrow-po"; }
+                  else if (cat !== "Bronce" && i === total - 1) { arrow = "↓"; arrowClass = "arrow-down"; }
+                }
                 return (
                   <div className="bracket-player" key={row.jugador}>
                     {arrow
@@ -295,14 +304,304 @@ function BracketCategoria({ cat, partidos, grupos, irAClasificacion }) {
   );
 }
 
+// ─── Modal de registro de partido de playoff ────────────────────────────────
+function PlayoffRegistroModal({ grupos, partidos, temporada, open, onClose, onGuardado }) {
+  const [paso, setPaso] = useState(1);     // 1 = elegir partido, 2 = introducir score
+  const [matchSel, setMatchSel] = useState(null);
+  const [catSel, setCatSel] = useState(null);
+  const [s1l, setS1l] = useState(""); const [s1v, setS1v] = useState("");
+  const [s2l, setS2l] = useState(""); const [s2v, setS2v] = useState("");
+  const [stbl, setStbl] = useState(""); const [stbv, setStbv] = useState("");
+  const [msg, setMsg] = useState(null);
+  const [msgType, setMsgType] = useState("error");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (open) { setPaso(1); setMatchSel(null); resetScore(); }
+  }, [open]);
+
+  function resetScore() {
+    setS1l(""); setS1v(""); setS2l(""); setS2v(""); setStbl(""); setStbv(""); setMsg(null);
+  }
+
+  // Partidos de playoff pendientes por categoría (excluye final si semis no terminadas)
+  const data = calcPlayoffs(grupos, partidos);
+  const pendientes = data.flatMap(d =>
+    d.matches
+      .filter(m => m.disponible !== false && (!m.partido || m.partido.estado !== "jugado"))
+      .map(m => ({ ...m, cat: d.cat }))
+  );
+
+  const w1 = n(s1l) != null && n(s1v) != null ? (n(s1l) > n(s1v) ? "l" : "v") : null;
+  const w2 = n(s2l) != null && n(s2v) != null ? (n(s2l) > n(s2v) ? "l" : "v") : null;
+  const showSTB = w1 != null && w2 != null && w1 !== w2;
+
+  async function handleGuardar() {
+    if (sending) return;
+    setMsg(null);
+    const errors = validarSets(n(s1l), n(s1v), n(s2l), n(s2v), showSTB ? n(stbl) : null, showSTB ? n(stbv) : null);
+    if (errors.length > 0) { setMsg(errors.join(" · ")); setMsgType("error"); return; }
+    setSending(true);
+    try {
+      await registrarResultado({
+        temporada: temporada || "2026-Primavera",
+        categoria: catSel,
+        grupo: matchSel.grupoPartido, // "PO-Asc" o "PO-Des"
+        local: matchSel.j1,
+        visitante: matchSel.j2,
+        s1l: n(s1l), s1v: n(s1v),
+        s2l: n(s2l), s2v: n(s2v),
+        stbl: showSTB ? n(stbl) : null,
+        stbv: showSTB ? n(stbv) : null,
+      });
+      setMsg("¡Resultado registrado correctamente!");
+      setMsgType("success");
+      setTimeout(() => { onGuardado(); }, 1500);
+    } catch (err) {
+      setMsg(err?.message || "Error de red al enviar. Inténtalo de nuevo.");
+      setMsgType("error");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (!open) return null;
+
+  // ── Paso 1: seleccionar partido ──
+  if (paso === 1) {
+    return (
+      <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="modal-box">
+          <div className="modal-title">🏆 Registrar playoff</div>
+
+          {pendientes.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text2)", fontSize: 13 }}>
+              No hay partidos de playoff pendientes
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {pendientes.map(m => (
+                <button
+                  key={m.grupoKey}
+                  onClick={() => { setMatchSel(m); setCatSel(m.cat); setPaso(2); resetScore(); }}
+                  style={{
+                    textAlign: "left", background: "var(--bg3)",
+                    border: "1px solid var(--border)", borderRadius: 10,
+                    padding: "12px 14px", cursor: "pointer",
+                    color: "var(--text1)", fontFamily: "inherit",
+                  }}
+                >
+                  <div style={{ fontSize: 11, color: CAT_COLOR[m.cat], fontWeight: 700, marginBottom: 4 }}>
+                    {m.cat} · {poLabel(m.tipo)}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    {m.j1} <span style={{ color: "var(--text2)", fontWeight: 400 }}>vs</span> {m.j2}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="modal-actions" style={{ marginTop: 16 }}>
+            <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Paso 2: introducir resultado ──
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
+        <div className="modal-title">
+          {matchSel.tipo === "ascenso" ? "PO↑ Playoff Ascenso" : "PO↓ Playoff Descenso"}
+        </div>
+        <div style={{ fontSize: 11, color: CAT_COLOR[catSel], fontWeight: 700, marginBottom: 12 }}>
+          {catSel}
+        </div>
+        <div style={{ marginBottom: 14, fontWeight: 600, fontSize: 14 }}>
+          <span style={{ opacity: 0.7 }}>L:</span> {matchSel.j1}
+          &nbsp;|&nbsp;
+          <span style={{ opacity: 0.7 }}>V:</span> {matchSel.j2}
+        </div>
+
+        {msg && <div className={`alert alert-${msgType === "error" ? "error" : "success"}`}>{msg}</div>}
+
+        <div className="form-group">
+          <label className="form-label">Set 1</label>
+          <div className="score-row">
+            <span className="score-label">Local</span>
+            <input className="score-input" type="number" min="0" max="7" value={s1l} onChange={e => setS1l(e.target.value)} />
+            <span className="score-sep">–</span>
+            <input className="score-input" type="number" min="0" max="7" value={s1v} onChange={e => setS1v(e.target.value)} />
+            <span className="score-label">Visit.</span>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Set 2</label>
+          <div className="score-row">
+            <span className="score-label">Local</span>
+            <input className="score-input" type="number" min="0" max="7" value={s2l} onChange={e => setS2l(e.target.value)} />
+            <span className="score-sep">–</span>
+            <input className="score-input" type="number" min="0" max="7" value={s2v} onChange={e => setS2v(e.target.value)} />
+            <span className="score-label">Visit.</span>
+          </div>
+        </div>
+
+        {showSTB && (
+          <div className="form-group">
+            <label className="form-label">Super Tiebreak (10 pts)</label>
+            <div className="score-row">
+              <span className="score-label">Local</span>
+              <input className="score-input" type="number" min="0" max="99" value={stbl} onChange={e => setStbl(e.target.value)} style={{ width: 60 }} />
+              <span className="score-sep">–</span>
+              <input className="score-input" type="number" min="0" max="99" value={stbv} onChange={e => setStbv(e.target.value)} style={{ width: 60 }} />
+              <span className="score-label">Visit.</span>
+            </div>
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button className="btn-secondary" onClick={() => { setPaso(1); resetScore(); }} disabled={sending}>
+            ← Volver
+          </button>
+          <button className="btn-primary" onClick={handleGuardar} disabled={sending}>
+            {sending ? "Enviando..." : "Guardar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// helpers para tipos de partido
+function poLabel(tipo) {
+  switch(tipo) {
+    case "semi1": return "Semifinal · 1A vs 2B";
+    case "semi2": return "Semifinal · 2A vs 1B";
+    case "final": return "🏆 Final";
+    case "ascenso": return "Playoff ascenso";
+    case "descenso": return "Playoff descenso";
+    default: return tipo;
+  }
+}
+function poBadgeClass(tipo) {
+  return tipo === "descenso" ? "badge-po-down" : "badge-po-up";
+}
+function poBadgeText(tipo) {
+  switch(tipo) {
+    case "semi1": case "semi2": return "F4";
+    case "final": return "Final";
+    case "ascenso": return "PO↑";
+    case "descenso": return "PO↓";
+    default: return tipo;
+  }
+}
+
+// ─── Sección playoffs activos ───────────────────────────────────────────────
+function PlayoffResumen({ grupos, partidos }) {
+  const data = calcPlayoffs(grupos, partidos);
+  const activas = data.filter(d => d.matches.length > 0);
+  if (activas.length === 0) return null;
+
+  return (
+    <>
+      <div className="section-label" style={{ marginTop: 20 }}>🏆 Playoffs</div>
+      {activas.map(({ cat, matches, promovidos, descendidos, campeon }) => {
+        const color = CAT_COLOR[cat];
+        return (
+          <div className="card" key={cat} style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, color, fontSize: 13, marginBottom: 10,
+              display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="bracket-dot" style={{ background: color }} />
+              {cat}
+              {campeon && (
+                <span style={{ marginLeft: "auto", fontSize: 12, color: "#f9a825", fontWeight: 700 }}>
+                  🏆 {campeon}
+                </span>
+              )}
+            </div>
+
+            {/* Ascenso directo (no Platino) */}
+            {promovidos.map(j => (
+              <div key={j} style={{ fontSize: 12, color: "#4caf50", marginBottom: 6,
+                display: "flex", alignItems: "center", gap: 6 }}>
+                <span className="arrow-up" style={{ fontSize: 11 }}>↑</span>
+                <span>Asciende directo: <strong>{j}</strong></span>
+              </div>
+            ))}
+
+            {/* Partidos */}
+            {matches.map(m => {
+              const jugado = m.partido && m.partido.estado === "jugado";
+              const ganador = jugado ? m.partido.Ganador : null;
+              const score = jugado ? formatScore(m.partido) : null;
+              const pendienteLabel = m.disponible === false ? "Pendiente (semis sin jugar)" : "Pendiente";
+              const esFinal = m.tipo === "final";
+              return (
+                <div key={m.tipo} style={{ padding: "8px 0",
+                  borderTop: "1px solid var(--border)", marginTop: 4,
+                  opacity: m.disponible === false ? 0.45 : 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <span className={`badge ${poBadgeClass(m.tipo)}`}
+                      style={esFinal ? { background: "#f9a825", color: "#000" } : {}}>
+                      {poBadgeText(m.tipo)}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--text2)" }}>{poLabel(m.tipo)}</span>
+                  </div>
+                  <div className="match-row" style={{ alignItems: "center" }}>
+                    <span className={`match-player${ganador === m.j1 ? " winner" : ""}`}
+                      style={{ fontSize: 13, color: m.j1 === "?" ? "var(--text2)" : undefined }}>
+                      {m.j1 === "?" ? "Por determinar" : m.j1}
+                    </span>
+                    {jugado && score
+                      ? <span className="match-score" style={{ fontSize: 12 }}>{score}</span>
+                      : <span className="match-vs">vs</span>}
+                    <span className={`match-player${ganador === m.j2 ? " winner" : ""}`}
+                      style={{ fontSize: 13, textAlign: "right", color: m.j2 === "?" ? "var(--text2)" : undefined }}>
+                      {m.j2 === "?" ? "Por determinar" : m.j2}
+                    </span>
+                  </div>
+                  {ganador && (
+                    <div style={{ fontSize: 11, color: esFinal ? "#f9a825" : "#4caf50", marginTop: 4, textAlign: "center", fontWeight: esFinal ? 700 : 400 }}>
+                      {esFinal ? "🏆 Campeón: " : "Ganador: "}<strong>{ganador}</strong>
+                    </div>
+                  )}
+                  {!jugado && !ganador && (
+                    <div style={{ fontSize: 11, color: "var(--text2)", marginTop: 4, textAlign: "center" }}>
+                      {pendienteLabel}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Descenso directo */}
+            {descendidos.map(j => (
+              <div key={j} style={{ fontSize: 12, color: "#e53935", marginTop: 6,
+                display: "flex", alignItems: "center", gap: 6 }}>
+                <span className="arrow-down" style={{ fontSize: 11 }}>↓</span>
+                <span>Desciende directo: <strong>{j}</strong></span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 // ─── Página principal ───────────────────────────────────────────────────────
-export default function Historial({ irAClasificacion }) {
+export default function Historial({ irAClasificacion, isAdmin }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalResultado, setModalResultado] = useState(false);
+  const [modalPlayoff, setModalPlayoff] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -332,23 +631,29 @@ export default function Historial({ irAClasificacion }) {
       .catch(() => {});
   }
 
+  const temporada = config?.temporada ?? "2026-Primavera";
+
   const partidosStats = partidos.map(normalizarStats);
-  const partidosEngine = partidos.map(normalizarEngine);
-  const jugados = partidosStats.filter(p => p.estado === "jugado");
+  const todosEngine  = partidos.map(normalizarEngine);
+  // Filtra por temporada activa (sin temporada asignada → pertenece a la actual)
+  const partidosEngine = temporada
+    ? todosEngine.filter(p => !p.temporada || p.temporada === temporada)
+    : todosEngine;
+
+  const jugados = partidosEngine.filter(p => p.estado === "jugado");
   const gruposValues = Object.values(grupos);
   const totalPartidosTeorico = gruposValues.reduce((acc, jug) => {
     const n = jug.length;
     return acc + (n * (n - 1)) / 2;
   }, 0);
-  const temporada = config?.temporada ?? "2026-Primavera";
   const pct = totalPartidosTeorico > 0 ? Math.round((jugados.length / totalPartidosTeorico) * 100) : 0;
 
   return (
     <div className="page-content">
       <h1 className="page-title">Inicio</h1>
 
-      {/* Banner registrar resultado */}
-      <button className="resultado-banner" onClick={() => setModalResultado(true)}>
+      {/* Banner registrar resultado — solo admin */}
+      {isAdmin && <button className="resultado-banner" onClick={() => config?.playoffs_activos ? setModalPlayoff(true) : setModalResultado(true)}>
         <div className="resultado-banner-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
@@ -357,13 +662,17 @@ export default function Historial({ irAClasificacion }) {
           </svg>
         </div>
         <div className="resultado-banner-text">
-          <span className="resultado-banner-title">Registrar resultado</span>
-          <span className="resultado-banner-sub">Apunta el marcador de tu partido</span>
+          <span className="resultado-banner-title">
+            {config?.playoffs_activos ? "🏆 Registrar playoff" : "Registrar resultado"}
+          </span>
+          <span className="resultado-banner-sub">
+            {config?.playoffs_activos ? "Apunta el resultado del playoff" : "Apunta el marcador de tu partido"}
+          </span>
         </div>
         <svg className="resultado-banner-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6" />
         </svg>
-      </button>
+      </button>}
 
       {loading && <div className="loading-text">Cargando...</div>}
       {error && <div className="alert alert-error">{error}</div>}
@@ -387,21 +696,26 @@ export default function Historial({ irAClasificacion }) {
             </div>
           </div>
 
-          <div className="section-label">Posiciones actuales</div>
-          <div style={{ fontSize: 12, color: "var(--text2)", marginBottom: 12 }}>
-            Ascensos y descensos proyectados con la clasificación actual
-          </div>
-
-          {CATEGORIAS.map(cat => (
-            <BracketCategoria key={cat} cat={cat} partidos={partidosEngine} grupos={grupos} irAClasificacion={irAClasificacion} />
-          ))}
-
-          <div style={{ marginTop: 4, fontSize: 11, color: "var(--text2)", lineHeight: 2 }}>
-            <span className="arrow-up">↑</span> Asciende &nbsp;
-            <span className="arrow-po">PO↑</span> Playoff ascenso &nbsp;
-            <span className="arrow-po">PO↓</span> Playoff descenso &nbsp;
-            <span className="arrow-down">↓</span> Desciende
-          </div>
+          {/* Cuando los playoffs están activos mostramos su estado; si no, el bracket provisional */}
+          {config?.playoffs_activos ? (
+            <PlayoffResumen grupos={grupos} partidos={partidosEngine} />
+          ) : (
+            <>
+              <div className="section-label">Posiciones actuales</div>
+              <div style={{ fontSize: 12, color: "var(--text2)", marginBottom: 12 }}>
+                Ascensos y descensos proyectados con la clasificación actual
+              </div>
+              {CATEGORIAS.map(cat => (
+                <BracketCategoria key={cat} cat={cat} partidos={partidosEngine} grupos={grupos} irAClasificacion={irAClasificacion} />
+              ))}
+              <div style={{ marginTop: 4, fontSize: 11, color: "var(--text2)", lineHeight: 2 }}>
+                <span className="arrow-up">↑</span> Asciende &nbsp;
+                <span className="arrow-po">PO↑</span> Playoff ascenso &nbsp;
+                <span className="arrow-po">PO↓</span> Playoff descenso &nbsp;
+                <span className="arrow-down">↓</span> Desciende
+              </div>
+            </>
+          )}
 
           <div className="section-label">Normas</div>
           <div className="normas-card">
@@ -460,9 +774,19 @@ export default function Historial({ irAClasificacion }) {
       <ResultadoModal
         grupos={grupos}
         partidos={partidos}
+        temporada={temporada}
         open={modalResultado}
         onClose={() => setModalResultado(false)}
         onGuardado={handleGuardado}
+      />
+
+      <PlayoffRegistroModal
+        grupos={grupos}
+        partidos={partidosEngine}
+        temporada={temporada}
+        open={modalPlayoff}
+        onClose={() => setModalPlayoff(false)}
+        onGuardado={() => { setModalPlayoff(false); handleGuardado(); }}
       />
     </div>
   );

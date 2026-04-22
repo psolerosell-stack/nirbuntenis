@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { fetchPartidos } from "../api.js";
+import { fetchPartidos, fetchConfig } from "../api.js";
 
 const CATEGORIAS = ["Todas", "Platino", "Oro", "Plata", "Bronce"];
+const FASES = ["Todas", "Liga", "Playoffs"];
 
 function getCat(grupo) {
   // grupo puede ser "Platino-A" o solo "A"
@@ -37,6 +38,8 @@ function normalizar(p) {
     resultado: p.Resultado ?? p.resultado ?? null,
     fecha:     p.Fecha ?? p.fecha,
     estado:    (p.Estado ?? p.estado ?? "").toLowerCase(),
+    fase:      (p.Fase ?? p.fase ?? "liga").toLowerCase(),
+    temporada: (p.Temporada ?? "").trim(),
   };
 }
 
@@ -80,6 +83,7 @@ function PartidoCard({ p }) {
 
 export default function Partidos() {
   const [partidos, setPartidos] = useState([]);
+  const [config, setConfig]     = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
@@ -87,14 +91,17 @@ export default function Partidos() {
   const [busqueda, setBusqueda] = useState("");
   const [catFiltro, setCatFiltro] = useState("Todas");
   const [grupoFiltro, setGrupoFiltro] = useState("Todos");
+  const [faseFiltro, setFaseFiltro] = useState("Todas");
+  const [tempFiltro, setTempFiltro] = useState("__active__"); // "__active__" = temporada activa
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    fetchPartidos(controller.signal)
-      .then(json => {
-        setPartidos(Array.isArray(json) ? json.map(normalizar) : []);
+    Promise.all([fetchPartidos(controller.signal), fetchConfig(controller.signal)])
+      .then(([pJson, cJson]) => {
+        setPartidos(Array.isArray(pJson) ? pJson.map(normalizar) : []);
+        setConfig(cJson || {});
         setLoading(false);
       })
       .catch(err => {
@@ -103,15 +110,32 @@ export default function Partidos() {
     return () => controller.abort();
   }, []);
 
+  // Temporadas únicas para el selector
+  const temporadas = useMemo(() => {
+    const set = new Set(partidos.map(p => p.temporada).filter(Boolean));
+    return Array.from(set).sort();
+  }, [partidos]);
+
+  const temporadaActiva = config?.temporada || "";
+
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
+    // Resuelve la temporada efectiva del filtro
+    const tempEfectiva = tempFiltro === "__active__" ? temporadaActiva : tempFiltro;
     return partidos.filter(p => {
       if (catFiltro !== "Todas" && getCat(p.grupo) !== catFiltro) return false;
       if (grupoFiltro !== "Todos" && getGrupoLetra(p.grupo) !== grupoFiltro) return false;
+      if (faseFiltro !== "Todas" && p.fase !== faseFiltro.toLowerCase()) return false;
+      // Filtro temporada: "__all__" = todas; de lo contrario filtra por valor
+      if (tempFiltro !== "__all__") {
+        // Sin temporada asignada → se trata como temporada activa
+        const pTemp = p.temporada || temporadaActiva;
+        if (tempEfectiva && pTemp !== tempEfectiva) return false;
+      }
       if (q && !p.local.toLowerCase().includes(q) && !p.visitante.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [partidos, busqueda, catFiltro, grupoFiltro]);
+  }, [partidos, busqueda, catFiltro, grupoFiltro, faseFiltro, tempFiltro, temporadaActiva]);
 
   const pendientes = filtrados
     .filter(p => p.estado === "pendiente")
@@ -121,7 +145,7 @@ export default function Partidos() {
     .filter(p => p.estado === "jugado")
     .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
 
-  const hayFiltros = busqueda || catFiltro !== "Todas" || grupoFiltro !== "Todos";
+  const hayFiltros = busqueda || catFiltro !== "Todas" || grupoFiltro !== "Todos" || faseFiltro !== "Todas" || tempFiltro !== "__active__";
 
   return (
     <div className="page-content">
@@ -171,6 +195,46 @@ export default function Partidos() {
               {g === "Todos" ? "Todos los grupos" : `Grupo ${g}`}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Filtro fase */}
+      <div className="group-tabs" style={{ "--active-cat": "var(--accent)", marginBottom: 4 }}>
+        {FASES.map(f => (
+          <button
+            key={f}
+            className={`group-tab ${faseFiltro === f ? "active" : ""}`}
+            onClick={() => setFaseFiltro(f)}
+          >
+            {f === "Playoffs" ? "🏆 Playoffs" : f}
+          </button>
+        ))}
+      </div>
+
+      {/* Filtro temporada (visible cuando hay más de una) */}
+      {temporadas.length > 1 && (
+        <div className="group-tabs" style={{ "--active-cat": "var(--accent)", marginBottom: 4 }}>
+          <button
+            className={`group-tab ${tempFiltro === "__active__" ? "active" : ""}`}
+            onClick={() => setTempFiltro("__active__")}
+          >
+            {temporadaActiva || "Actual"}
+          </button>
+          {temporadas.filter(t => t !== temporadaActiva).map(t => (
+            <button
+              key={t}
+              className={`group-tab ${tempFiltro === t ? "active" : ""}`}
+              onClick={() => setTempFiltro(t)}
+            >
+              {t}
+            </button>
+          ))}
+          <button
+            className={`group-tab ${tempFiltro === "__all__" ? "active" : ""}`}
+            onClick={() => setTempFiltro("__all__")}
+          >
+            Todas
+          </button>
         </div>
       )}
 
