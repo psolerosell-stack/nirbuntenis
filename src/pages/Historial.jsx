@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchPartidos, fetchConfig, registrarResultado } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcClasificacion, calcPlayoffs, formatScore } from "../engine.js";
+import { gruposFromPartidos } from "../utils/gruposFromPartidos.js";
 import { validarSets } from "../utils/validarSets.js";
 
 const CATEGORIAS = ["Platino", "Oro", "Plata", "Bronce"];
@@ -634,6 +635,7 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
   // temporada activa del config; temporadaSel viene del estado global de App
   const temporadaActiva = config?.temporada ?? "";
   const temporada = temporadaSel ?? temporadaActiva;
+  const esTemporadaActiva = !temporada || temporada === temporadaActiva;
 
   // Temporadas únicas en los datos (para el selector)
   const todosEngine = partidos.map(normalizarEngine);
@@ -643,6 +645,10 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
   const partidosEngine = temporada
     ? todosEngine.filter(p => !p.temporada || p.temporada === temporada)
     : todosEngine;
+
+  // Para temporadas históricas, los grupos se reconstruyen desde los partidos
+  // (Jugadores solo refleja la asignación de la temporada actual)
+  const gruposEfectivos = esTemporadaActiva ? grupos : gruposFromPartidos(partidosEngine);
 
   const jugados = partidosEngine.filter(p => p.estado === "jugado");
   const gruposValues = Object.values(grupos);
@@ -728,7 +734,7 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
 
           {/* Cuando los playoffs están activos mostramos su estado; si no, el bracket provisional */}
           {config?.playoffs_activos ? (
-            <PlayoffResumen grupos={grupos} partidos={partidosEngine} />
+            <PlayoffResumen grupos={gruposEfectivos} partidos={partidosEngine} />
           ) : (
             <>
               <div className="section-label">Posiciones actuales</div>
@@ -736,7 +742,7 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
                 Ascensos y descensos proyectados con la clasificación actual
               </div>
               {CATEGORIAS.map(cat => (
-                <BracketCategoria key={cat} cat={cat} partidos={partidosEngine} grupos={grupos} irAClasificacion={irAClasificacion} />
+                <BracketCategoria key={cat} cat={cat} partidos={partidosEngine} grupos={gruposEfectivos} irAClasificacion={irAClasificacion} />
               ))}
               <div style={{ marginTop: 4, fontSize: 11, color: "var(--text2)", lineHeight: 2 }}>
                 <span className="arrow-up">↑</span> Asciende &nbsp;

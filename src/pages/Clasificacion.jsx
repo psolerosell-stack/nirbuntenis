@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchPartidos, fetchConfig, clearLocalCache } from "../api.js";
 import { useGrupos } from "../GruposContext.jsx";
 import { calcClasificacion } from "../engine.js";
+import { gruposFromPartidos } from "../utils/gruposFromPartidos.js";
 import Playoffs from "./Playoffs.jsx";
 
 const CATEGORIAS = ["Platino", "Oro", "Plata", "Bronce"];
@@ -158,11 +159,18 @@ export default function Clasificacion({ navTo, irAPerfil, temporadaSel }) {
 
   // Usa la temporada seleccionada globalmente (o la activa del config como fallback)
   const temporadaEfectiva = temporadaSel ?? config?.temporada ?? "";
+  const esTemporadaActiva = !temporadaEfectiva || temporadaEfectiva === config?.temporada;
+
   const partidosFiltrados = temporadaEfectiva
     ? partidos.filter(p => !p.temporada || p.temporada === temporadaEfectiva)
     : partidos;
 
-  const clasi = loading ? [] : calcClasificacion(jugadores, partidosFiltrados, grupoKey);
+  // Para temporadas históricas los grupos se derivan de los partidos,
+  // ya que Jugadores solo refleja la asignación de la temporada actual.
+  const gruposEfectivos = esTemporadaActiva ? grupos : gruposFromPartidos(partidosFiltrados);
+  const jugadoresEfectivos = gruposEfectivos[grupoKey] || [];
+
+  const clasi = loading ? [] : calcClasificacion(jugadoresEfectivos, partidosFiltrados, grupoKey);
 
   return (
     <div className="page-content">
@@ -340,15 +348,15 @@ export default function Clasificacion({ navTo, irAPerfil, temporadaSel }) {
               (p.local === a && p.visitante === b) || (p.local === b && p.visitante === a)
             );
             const pendientesParejas = [];
-            for (let i = 0; i < jugadores.length; i++) {
-              for (let j = i + 1; j < jugadores.length; j++) {
-                if (!parejaJugada(jugadores[i], jugadores[j])) {
+            for (let i = 0; i < jugadoresEfectivos.length; i++) {
+              for (let j = i + 1; j < jugadoresEfectivos.length; j++) {
+                if (!parejaJugada(jugadoresEfectivos[i], jugadoresEfectivos[j])) {
                   const apiFecha = partidosFiltrados.find(p =>
                     p.grupo === grupoKey && p.estado === "pendiente" &&
-                    ((p.local === jugadores[i] && p.visitante === jugadores[j]) ||
-                     (p.local === jugadores[j] && p.visitante === jugadores[i]))
+                    ((p.local === jugadoresEfectivos[i] && p.visitante === jugadoresEfectivos[j]) ||
+                     (p.local === jugadoresEfectivos[j] && p.visitante === jugadoresEfectivos[i]))
                   )?.fecha ?? "";
-                  pendientesParejas.push({ a: jugadores[i], b: jugadores[j], fecha: apiFecha });
+                  pendientesParejas.push({ a: jugadoresEfectivos[i], b: jugadoresEfectivos[j], fecha: apiFecha });
                 }
               }
             }
