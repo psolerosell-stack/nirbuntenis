@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import { GruposProvider } from "./GruposContext.jsx";
 import Clasificacion from "./pages/Clasificacion.jsx";
@@ -6,6 +6,10 @@ import Partidos from "./pages/Partidos.jsx";
 import Historial from "./pages/Historial.jsx";
 import Jugadores from "./pages/Jugadores.jsx";
 import PerfilJugador from "./pages/PerfilJugador.jsx";
+import LoginPage from "./components/LoginPage.jsx";
+import ProfilePanel from "./components/ProfilePanel.jsx";
+import { useAuth } from "./hooks/useAuth.js";
+import { fetchConfig } from "./api.js";
 
 const TABS = [
   {
@@ -66,10 +70,29 @@ const TABS = [
   },
 ];
 
+const DEMO_PARAM = new URLSearchParams(window.location.search).get("demo") === "1";
+
 export default function App() {
+  const { user, isAdmin, loading, signInWithGoogle, signOut } = useAuth();
   const [tab, setTab] = useState("historial");
   const [clasiFiltro, setClasiFiltro] = useState({ cat: "Platino", grupo: "A", seq: 0 });
   const [perfilActivo, setPerfilActivo] = useState(null); // { jugador: string }
+  const [panelAbierto, setPanelAbierto] = useState(false);
+  const [demoMode, setDemoMode] = useState(DEMO_PARAM);
+
+  // ── Temporada global ──────────────────────────────────────────────────────
+  // null = cargando; string = temporada seleccionada (default = activa en Config)
+  const [temporadaSel, setTemporadaSel] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchConfig(controller.signal)
+      .then(cfg => {
+        if (cfg?.temporada) setTemporadaSel(cfg.temporada);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   function irAClasificacion(cat, grupo) {
     setClasiFiltro({ cat, grupo, seq: Date.now() });
@@ -85,15 +108,57 @@ export default function App() {
   }
 
   const PAGES = {
-    historial: <Historial irAClasificacion={irAClasificacion} />,
-    clasificacion: <Clasificacion navTo={clasiFiltro} irAPerfil={irAPerfil} />,
-    partidos: <Partidos />,
-    jugadores: <Jugadores irAPerfil={irAPerfil} />,
+    historial:     <Historial irAClasificacion={irAClasificacion} isAdmin={isAdmin} temporadaSel={temporadaSel} onCambioTemporada={setTemporadaSel} />,
+    clasificacion: <Clasificacion navTo={clasiFiltro} irAPerfil={irAPerfil} temporadaSel={temporadaSel} />,
+    partidos:      <Partidos isAdmin={isAdmin} temporadaSel={temporadaSel} />,
+    jugadores:     <Jugadores irAPerfil={irAPerfil} />,
   };
+
+  // Auth loading
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: "100dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg)",
+      }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+          </path>
+        </svg>
+      </div>
+    );
+  }
+
+  // Not authenticated → login
+  if (!user && !demoMode) {
+    return <LoginPage onSignIn={signInWithGoogle} loading={loading} onDemo={() => setDemoMode(true)} />;
+  }
+
+  const inicial = (user?.displayName?.[0] ?? user?.email?.[0] ?? "?").toUpperCase();
 
   return (
     <GruposProvider>
       <div className="app-shell">
+
+        {/* ── Avatar fijo top-right (solo si autenticado) ── */}
+        {user && (
+          <button
+            className="avatar-btn"
+            onClick={() => setPanelAbierto(true)}
+            aria-label="Abrir perfil"
+          >
+            {user.photoURL ? (
+              <img src={user.photoURL} alt="avatar" />
+            ) : (
+              <span className="avatar-btn-initial">{inicial}</span>
+            )}
+          </button>
+        )}
+
         {perfilActivo ? (
           <PerfilJugador
             jugador={perfilActivo.jugador}
@@ -117,6 +182,17 @@ export default function App() {
             </nav>
           </>
         )}
+
+        {/* ── Panel de perfil (solo si autenticado) ── */}
+        {user && (
+          <ProfilePanel
+            open={panelAbierto}
+            onClose={() => setPanelAbierto(false)}
+            user={user}
+            onSignOut={() => { setPanelAbierto(false); signOut(); }}
+          />
+        )}
+
       </div>
     </GruposProvider>
   );

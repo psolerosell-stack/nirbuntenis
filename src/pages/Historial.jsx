@@ -594,7 +594,7 @@ function PlayoffResumen({ grupos, partidos }) {
 }
 
 // ─── Página principal ───────────────────────────────────────────────────────
-export default function Historial({ irAClasificacion, isAdmin }) {
+export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onCambioTemporada }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
   const [config, setConfig] = useState(null);
@@ -631,11 +631,15 @@ export default function Historial({ irAClasificacion, isAdmin }) {
       .catch(() => {});
   }
 
-  const temporada = config?.temporada ?? "2026-Primavera";
+  // temporada activa del config; temporadaSel viene del estado global de App
+  const temporadaActiva = config?.temporada ?? "";
+  const temporada = temporadaSel ?? temporadaActiva;
 
-  const partidosStats = partidos.map(normalizarStats);
-  const todosEngine  = partidos.map(normalizarEngine);
-  // Filtra por temporada activa (sin temporada asignada → pertenece a la actual)
+  // Temporadas únicas en los datos (para el selector)
+  const todosEngine = partidos.map(normalizarEngine);
+  const temporadasDisp = [...new Set(todosEngine.map(p => p.temporada).filter(Boolean))].sort();
+
+  // Partidos filtrados por temporada seleccionada
   const partidosEngine = temporada
     ? todosEngine.filter(p => !p.temporada || p.temporada === temporada)
     : todosEngine;
@@ -679,11 +683,35 @@ export default function Historial({ irAClasificacion, isAdmin }) {
 
       {!loading && !error && (
         <>
-          <div className="section-label">Temporada</div>
+          {/* ── Cabecera temporada + selector ── */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div className="section-label" style={{ margin: 0 }}>Temporada</div>
+            {temporadasDisp.length > 1 && (
+              <div style={{ display: "flex", gap: 4 }}>
+                {temporadasDisp.map(t => (
+                  <button
+                    key={t}
+                    onClick={() => onCambioTemporada?.(t)}
+                    style={{
+                      fontSize: 10, fontWeight: 600, padding: "3px 8px",
+                      borderRadius: 20, border: "1px solid var(--border)",
+                      background: temporada === t ? "var(--accent)" : "var(--bg3)",
+                      color: temporada === t ? "#fff" : "var(--text2)",
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="temporada-card">
             <div className="temporada-top">
-              <span className="temporada-name">{temporada}</span>
-              <span className="temporada-badge">En curso</span>
+              <span className="temporada-name">{temporada || "—"}</span>
+              <span className="temporada-badge">
+                {temporada === temporadaActiva ? config?.estado_temporada ?? "En curso" : "Histórica"}
+              </span>
             </div>
             <div className="temporada-progreso">
               <div className="progreso-bar">

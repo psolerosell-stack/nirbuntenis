@@ -81,9 +81,8 @@ function PartidoCard({ p }) {
   );
 }
 
-export default function Partidos() {
+export default function Partidos({ temporadaSel }) {
   const [partidos, setPartidos] = useState([]);
-  const [config, setConfig]     = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
@@ -92,16 +91,16 @@ export default function Partidos() {
   const [catFiltro, setCatFiltro] = useState("Todas");
   const [grupoFiltro, setGrupoFiltro] = useState("Todos");
   const [faseFiltro, setFaseFiltro] = useState("Todas");
-  const [tempFiltro, setTempFiltro] = useState("__active__"); // "__active__" = temporada activa
+  // Temporada: arranca sincronizado con la selección global
+  const [tempFiltro, setTempFiltro] = useState(null); // null = sigue a temporadaSel
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError(null);
-    Promise.all([fetchPartidos(controller.signal), fetchConfig(controller.signal)])
-      .then(([pJson, cJson]) => {
+    fetchPartidos(controller.signal)
+      .then(pJson => {
         setPartidos(Array.isArray(pJson) ? pJson.map(normalizar) : []);
-        setConfig(cJson || {});
         setLoading(false);
       })
       .catch(err => {
@@ -110,32 +109,32 @@ export default function Partidos() {
     return () => controller.abort();
   }, []);
 
-  // Temporadas únicas para el selector
+  // Temporadas únicas en los datos (para el selector local)
   const temporadas = useMemo(() => {
     const set = new Set(partidos.map(p => p.temporada).filter(Boolean));
     return Array.from(set).sort();
   }, [partidos]);
 
-  const temporadaActiva = config?.temporada || "";
+  // La temporada efectiva para el filtro:
+  // - Si el usuario cambió el filtro local (tempFiltro !== null) → usa ese
+  // - Si no → sigue el selector global (temporadaSel)
+  // - "__all__" = sin filtro de temporada
+  const tempEfectiva = tempFiltro !== null ? tempFiltro : (temporadaSel || "__all__");
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    // Resuelve la temporada efectiva del filtro
-    const tempEfectiva = tempFiltro === "__active__" ? temporadaActiva : tempFiltro;
     return partidos.filter(p => {
       if (catFiltro !== "Todas" && getCat(p.grupo) !== catFiltro) return false;
       if (grupoFiltro !== "Todos" && getGrupoLetra(p.grupo) !== grupoFiltro) return false;
       if (faseFiltro !== "Todas" && p.fase !== faseFiltro.toLowerCase()) return false;
-      // Filtro temporada: "__all__" = todas; de lo contrario filtra por valor
-      if (tempFiltro !== "__all__") {
-        // Sin temporada asignada → se trata como temporada activa
-        const pTemp = p.temporada || temporadaActiva;
+      if (tempEfectiva !== "__all__") {
+        const pTemp = p.temporada || temporadaSel || "";
         if (tempEfectiva && pTemp !== tempEfectiva) return false;
       }
       if (q && !p.local.toLowerCase().includes(q) && !p.visitante.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [partidos, busqueda, catFiltro, grupoFiltro, faseFiltro, tempFiltro, temporadaActiva]);
+  }, [partidos, busqueda, catFiltro, grupoFiltro, faseFiltro, tempEfectiva, temporadaSel]);
 
   const pendientes = filtrados
     .filter(p => p.estado === "pendiente")
@@ -145,7 +144,7 @@ export default function Partidos() {
     .filter(p => p.estado === "jugado")
     .sort((a, b) => String(b.fecha || "").localeCompare(String(a.fecha || "")));
 
-  const hayFiltros = busqueda || catFiltro !== "Todas" || grupoFiltro !== "Todos" || faseFiltro !== "Todas" || tempFiltro !== "__active__";
+  const hayFiltros = busqueda || catFiltro !== "Todas" || grupoFiltro !== "Todos" || faseFiltro !== "Todas" || tempFiltro !== null;
 
   return (
     <div className="page-content">
@@ -214,23 +213,17 @@ export default function Partidos() {
       {/* Filtro temporada (visible cuando hay más de una) */}
       {temporadas.length > 1 && (
         <div className="group-tabs" style={{ "--active-cat": "var(--accent)", marginBottom: 4 }}>
-          <button
-            className={`group-tab ${tempFiltro === "__active__" ? "active" : ""}`}
-            onClick={() => setTempFiltro("__active__")}
-          >
-            {temporadaActiva || "Actual"}
-          </button>
-          {temporadas.filter(t => t !== temporadaActiva).map(t => (
+          {temporadas.map(t => (
             <button
               key={t}
-              className={`group-tab ${tempFiltro === t ? "active" : ""}`}
+              className={`group-tab ${tempEfectiva === t ? "active" : ""}`}
               onClick={() => setTempFiltro(t)}
             >
               {t}
             </button>
           ))}
           <button
-            className={`group-tab ${tempFiltro === "__all__" ? "active" : ""}`}
+            className={`group-tab ${tempEfectiva === "__all__" ? "active" : ""}`}
             onClick={() => setTempFiltro("__all__")}
           >
             Todas

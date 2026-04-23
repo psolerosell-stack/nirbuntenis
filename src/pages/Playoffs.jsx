@@ -356,7 +356,7 @@ function CatCard({ data, onRegistrar }) {
   );
 }
 
-export default function Playoffs({ embedded = false }) {
+export default function Playoffs({ embedded = false, temporadaSel }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
   const [config, setConfig] = useState(null);
@@ -384,9 +384,10 @@ export default function Playoffs({ embedded = false }) {
     return () => controller.abort();
   }, []);
 
-  const temporada = config?.temporada ?? "";
+  // Usa temporada global si viene de App; si no, la activa del config
+  const temporada = temporadaSel ?? config?.temporada ?? "";
   const todosEngine = partidos.map(normalizarEngine);
-  // Filtra por temporada activa (sin temporada → pertenece a la actual)
+  // Filtra por temporada seleccionada (sin temporada → pertenece a la actual)
   const partidosEngine = temporada
     ? todosEngine.filter(p => !p.temporada || p.temporada === temporada)
     : todosEngine;

@@ -105,7 +105,7 @@ function getBadge(idx, total, cat) {
   return null;
 }
 
-export default function Clasificacion({ navTo, irAPerfil }) {
+export default function Clasificacion({ navTo, irAPerfil, temporadaSel }) {
   const { grupos } = useGrupos();
   const [vista, setVista] = useState("ranking");
   const [cat, setCat] = useState("Platino");
@@ -156,10 +156,10 @@ export default function Clasificacion({ navTo, irAPerfil }) {
   const color = CAT_COLOR[cat];
   const jugadores = grupos[grupoKey] || [];
 
-  // Filtra partidos por temporada activa (si no tiene temporada asignada, cuenta como actual)
-  const temporadaActiva = config?.temporada || "";
-  const partidosFiltrados = temporadaActiva
-    ? partidos.filter(p => !p.temporada || p.temporada === temporadaActiva)
+  // Usa la temporada seleccionada globalmente (o la activa del config como fallback)
+  const temporadaEfectiva = temporadaSel ?? config?.temporada ?? "";
+  const partidosFiltrados = temporadaEfectiva
+    ? partidos.filter(p => !p.temporada || p.temporada === temporadaEfectiva)
     : partidos;
 
   const clasi = loading ? [] : calcClasificacion(jugadores, partidosFiltrados, grupoKey);
@@ -195,7 +195,7 @@ export default function Clasificacion({ navTo, irAPerfil }) {
         )}
       </div>
 
-      {vista === "playoffs" && config?.playoffs_activos && <Playoffs embedded />}
+      {vista === "playoffs" && config?.playoffs_activos && <Playoffs embedded temporadaSel={temporadaSel} />}
 
       {vista === "ranking" && (
         <>
