@@ -687,23 +687,25 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <div className="section-label" style={{ margin: 0 }}>Temporada</div>
             {temporadasDisp.length > 1 && (
-              <div style={{ display: "flex", gap: 4 }}>
+              <select
+                value={temporada}
+                onChange={e => onCambioTemporada?.(e.target.value)}
+                style={{
+                  fontSize: 12, fontWeight: 600,
+                  padding: "4px 28px 4px 10px",
+                  borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--bg3)", color: "var(--text1)",
+                  cursor: "pointer", appearance: "none",
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 8px center",
+                  outline: "none",
+                }}
+              >
                 {temporadasDisp.map(t => (
-                  <button
-                    key={t}
-                    onClick={() => onCambioTemporada?.(t)}
-                    style={{
-                      fontSize: 10, fontWeight: 600, padding: "3px 8px",
-                      borderRadius: 20, border: "1px solid var(--border)",
-                      background: temporada === t ? "var(--accent)" : "var(--bg3)",
-                      color: temporada === t ? "#fff" : "var(--text2)",
-                      cursor: "pointer", transition: "all 0.15s",
-                    }}
-                  >
-                    {t}
-                  </button>
+                  <option key={t} value={t}>{t}</option>
                 ))}
-              </div>
+              </select>
             )}
           </div>
           <div className="temporada-card">
