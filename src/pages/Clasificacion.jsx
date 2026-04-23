@@ -185,7 +185,7 @@ export default function Clasificacion({ navTo, irAPerfil, temporadaSel }) {
         </button>
       </div>
 
-      {/* Vista toggle — Playoffs solo visible cuando está activado en Config */}
+      {/* Vista toggle */}
       <div className="vista-toggle" style={{ marginBottom: 12 }}>
         <button
           className={`vista-btn ${vista === "ranking" ? "active" : ""}`}
@@ -193,17 +193,15 @@ export default function Clasificacion({ navTo, irAPerfil, temporadaSel }) {
         >
           Ranking
         </button>
-        {config?.playoffs_activos && (
-          <button
-            className={`vista-btn ${vista === "playoffs" ? "active" : ""}`}
-            onClick={() => setVista("playoffs")}
-          >
-            🏆 Playoffs
-          </button>
-        )}
+        <button
+          className={`vista-btn ${vista === "playoffs" ? "active" : ""}`}
+          onClick={() => setVista("playoffs")}
+        >
+          🏆 Playoffs
+        </button>
       </div>
 
-      {vista === "playoffs" && config?.playoffs_activos && <Playoffs embedded temporadaSel={temporadaSel} />}
+      {vista === "playoffs" && <Playoffs embedded temporadaSel={temporadaSel} />}
 
       {vista === "ranking" && (
         <>
