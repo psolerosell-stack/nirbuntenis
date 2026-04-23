@@ -801,7 +801,7 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
 
       <ResultadoModal
         grupos={grupos}
-        partidos={partidos}
+        partidos={temporada ? partidos.filter(p => { const t = (p.Temporada ?? "").trim(); return !t || t === temporada; }) : partidos}
         temporada={temporada}
         open={modalResultado}
         onClose={() => setModalResultado(false)}
