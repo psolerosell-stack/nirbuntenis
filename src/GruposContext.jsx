@@ -5,35 +5,34 @@ import { grupos as staticGrupos } from "./data.js";
 const GruposContext = createContext(null);
 
 /**
- * Construye un objeto grupos fusionando los grupos estáticos (data.js) con
- * los jugadores que vienen del Sheet. Los jugadores estáticos siempre conservan
- * sus nombres completos. Sólo se añaden jugadores del Sheet que NO existan ya
- * en los grupos estáticos (para no sobrescribir con nombres truncados o erróneos).
+ * Construye los grupos a partir de los jugadores del Sheet.
+ * El Sheet es la fuente de verdad: si un jugador cambia de grupo o categoría
+ * en la pestaña Jugadores, la app lo refleja al expirar el caché (4 min).
+ * Si la llamada al API falla, se usan los grupos estáticos de data.js como fallback.
  */
 function mergeWithSheet(lista) {
-  // Copia profunda de los grupos estáticos
+  if (!lista || lista.length === 0) {
+    // Fallback: copia de los grupos estáticos
+    const result = {};
+    Object.entries(staticGrupos).forEach(([key, players]) => {
+      result[key] = [...players];
+    });
+    return result;
+  }
+
+  // Construir grupos íntegramente desde el Sheet
   const result = {};
-  Object.entries(staticGrupos).forEach(([key, players]) => {
-    result[key] = [...players];
-  });
-
-  // Conjunto de todos los jugadores ya existentes en los estáticos
-  const existentes = new Set(Object.values(staticGrupos).flat());
-
-  // Añadir sólo jugadores nuevos del Sheet (nombre con longitud razonable)
   lista.forEach(item => {
     const nombre = (item.NombreCompleto || item.Nombre || item.nombre || "").trim();
     const cat    = (item.Categoria || item.categoria || "").trim();
     const grp    = (item.Grupo || item.grupo || "").trim();
 
-    if (!nombre || nombre.length < 3) return; // descartar nombres vacíos o muy cortos
+    if (!nombre || nombre.length < 3) return;
     if (!cat || !grp) return;
-    if (existentes.has(nombre)) return; // ya está en los datos estáticos
 
     const key = `${cat}-${grp}`;
     if (!result[key]) result[key] = [];
-    result[key].push(nombre);
-    existentes.add(nombre);
+    if (!result[key].includes(nombre)) result[key].push(nombre);
   });
 
   return result;

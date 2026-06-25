@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwibf-E94FoXEIM9plBSdyMdliHoV42mbMQn0oSdC7BpBQPy0gfnjHR0UiIKlyIH2W4/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwKBoPDxJlCI979Wz-uPS6BwxxBXLPAfPo0sWp2t91K97ZvGalwJq0GyxmtvM666dH-/exec';
 const LOCAL_TTL = 4 * 60 * 1000; // 4 minutos en ms
 
 function bust() {

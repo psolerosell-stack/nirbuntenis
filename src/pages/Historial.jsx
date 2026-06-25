@@ -29,7 +29,11 @@ function yaJugaron(partidos, cat, grupoLetra, j1, j2) {
 }
 
 // ─── Modal de registro de resultado ────────────────────────────────────────
-function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado }) {
+// currentJugador: objeto {Nombre, Categoria, Grupo, Rol} del jugador logueado,
+//                 o null si es admin (admin ve el formulario completo sin restricciones)
+function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado, currentJugador }) {
+  const bloqueado = !!currentJugador; // true = no-admin: campos cat/grupo/nombre bloqueados
+
   const [cat, setCat] = useState("");
   const [grupoLetra, setGrupoLetra] = useState("");
   const [local, setLocal] = useState("");
@@ -41,18 +45,25 @@ function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado
   const [msgType, setMsgType] = useState("error");
   const [sending, setSending] = useState(false);
 
-  // Limpia el formulario cada vez que el modal se abre
+  // Al abrir: pre-rellena cat/grupo/nombre si hay jugador identificado, o limpia para admin
   useEffect(() => {
     if (open) {
-      setCat(""); setGrupoLetra(""); setLocal(""); setVisitante("");
+      if (bloqueado) {
+        setCat(currentJugador.Categoria || "");
+        setGrupoLetra(currentJugador.Grupo || "");
+        setLocal(currentJugador.Nombre || currentJugador.NombreCompleto || "");
+      } else {
+        setCat(""); setGrupoLetra(""); setLocal("");
+      }
+      setVisitante("");
       setS1l(""); setS1v(""); setS2l(""); setS2v("");
       setStbl(""); setStbv(""); setMsg(null);
     }
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const grupoKey = cat && grupoLetra ? `${cat}-${grupoLetra}` : null;
   const jugadores = grupoKey ? (grupos[grupoKey] || []) : [];
-  // Excluir jugadores con los que local ya ha jugado en este grupo
+  // Excluir al jugador local y partidos ya jugados contra él
   const visitantesDisp = jugadores.filter(j =>
     j !== local && !yaJugaron(partidos, cat, grupoLetra, local, j)
   );
@@ -61,7 +72,7 @@ function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado
   const showSTB = w1 != null && w2 != null && w1 !== w2;
 
   async function handleGuardar() {
-    if (sending) return; // guard contra doble envío
+    if (sending) return;
     setMsg(null);
     if (!grupoKey || !local || !visitante) { setMsg("Selecciona grupo y ambos jugadores"); setMsgType("error"); return; }
     if (yaJugaron(partidos, cat, grupoLetra, local, visitante)) { setMsg("Este partido ya está registrado."); setMsgType("error"); return; }
@@ -101,54 +112,81 @@ function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado
           <div className={`alert alert-${msgType === "error" ? "error" : "success"}`}>{msg}</div>
         )}
 
-        <div className="form-group">
-          <label className="form-label">Categoría</label>
-          <select
-            className="form-select"
-            value={cat}
-            onChange={e => { setCat(e.target.value); setGrupoLetra(""); setLocal(""); setVisitante(""); setMsg(null); }}
-          >
-            <option value="">— Selecciona —</option>
-            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+        {/* ── Categoría ── */}
+        {bloqueado ? (
+          <div className="form-group">
+            <label className="form-label">Categoría</label>
+            <div className="form-select" style={{ background: "var(--bg3)", color: "var(--text2)", cursor: "default" }}>{cat}</div>
+          </div>
+        ) : (
+          <div className="form-group">
+            <label className="form-label">Categoría</label>
+            <select
+              className="form-select"
+              value={cat}
+              onChange={e => { setCat(e.target.value); setGrupoLetra(""); setLocal(""); setVisitante(""); setMsg(null); }}
+            >
+              <option value="">— Selecciona —</option>
+              {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
 
+        {/* ── Grupo ── */}
         {cat && (
-          <div className="form-group">
-            <label className="form-label">Grupo</label>
-            <select
-              className="form-select"
-              value={grupoLetra}
-              onChange={e => { setGrupoLetra(e.target.value); setLocal(""); setVisitante(""); }}
-            >
-              <option value="">— Selecciona —</option>
-              {["A", "B"].map(g => <option key={g} value={g}>Grupo {g}</option>)}
-            </select>
-          </div>
-        )}
-
-        {grupoKey && jugadores.length > 0 && (
-          <div className="form-group">
-            <label className="form-label">Jugador local</label>
-            <select
-              className="form-select"
-              value={local}
-              onChange={e => { setLocal(e.target.value); setVisitante(""); }}
-            >
-              <option value="">— Selecciona —</option>
-              {jugadores.map(j => <option key={j} value={j}>{j}</option>)}
-            </select>
-          </div>
-        )}
-
-        {local && (
-          visitantesDisp.length === 0 ? (
-            <div className="alert alert-error" style={{ marginTop: 4 }}>
-              {local} ya ha jugado contra todos los jugadores del grupo.
+          bloqueado ? (
+            <div className="form-group">
+              <label className="form-label">Grupo</label>
+              <div className="form-select" style={{ background: "var(--bg3)", color: "var(--text2)", cursor: "default" }}>Grupo {grupoLetra}</div>
             </div>
           ) : (
             <div className="form-group">
-              <label className="form-label">Jugador visitante</label>
+              <label className="form-label">Grupo</label>
+              <select
+                className="form-select"
+                value={grupoLetra}
+                onChange={e => { setGrupoLetra(e.target.value); setLocal(""); setVisitante(""); }}
+              >
+                <option value="">— Selecciona —</option>
+                {["A", "B"].map(g => <option key={g} value={g}>Grupo {g}</option>)}
+              </select>
+            </div>
+          )
+        )}
+
+        {/* ── Jugador local (bloqueado = tú; libre = selector) ── */}
+        {grupoKey && jugadores.length > 0 && (
+          bloqueado ? (
+            <div className="form-group">
+              <label className="form-label">Tú</label>
+              <div className="form-select" style={{ background: "var(--bg3)", color: "var(--text2)", cursor: "default", fontWeight: 600 }}>
+                {local}
+              </div>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label">Jugador local</label>
+              <select
+                className="form-select"
+                value={local}
+                onChange={e => { setLocal(e.target.value); setVisitante(""); }}
+              >
+                <option value="">— Selecciona —</option>
+                {jugadores.map(j => <option key={j} value={j}>{j}</option>)}
+              </select>
+            </div>
+          )
+        )}
+
+        {/* ── Oponente / Visitante ── */}
+        {local && (
+          visitantesDisp.length === 0 ? (
+            <div className="alert alert-error" style={{ marginTop: 4 }}>
+              {bloqueado ? "Ya has jugado contra todos los jugadores del grupo." : `${local} ya ha jugado contra todos los jugadores del grupo.`}
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label">{bloqueado ? "Oponente" : "Jugador visitante"}</label>
               <select
                 className="form-select"
                 value={visitante}
@@ -161,31 +199,34 @@ function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado
           )
         )}
 
+        {/* ── Sets ── */}
         {visitante && (
           <>
             <div style={{ marginBottom: 4, fontWeight: 600, fontSize: 13, color: "var(--text2)" }}>
-              <span style={{ color: "var(--text1)" }}>L:</span> {local} &nbsp;|&nbsp; <span style={{ color: "var(--text1)" }}>V:</span> {visitante}
+              <span style={{ color: "var(--text1)" }}>{bloqueado ? "Tú" : "L"}:</span> {local}
+              &nbsp;|&nbsp;
+              <span style={{ color: "var(--text1)" }}>{bloqueado ? "Oponente" : "V"}:</span> {visitante}
             </div>
 
             <div className="form-group">
               <label className="form-label">Set 1</label>
               <div className="score-row">
-                <span className="score-label">Local</span>
+                <span className="score-label">{bloqueado ? "Tú" : "Local"}</span>
                 <input className="score-input" type="number" min="0" max="7" value={s1l} onChange={e => setS1l(e.target.value)} />
                 <span className="score-sep">–</span>
                 <input className="score-input" type="number" min="0" max="7" value={s1v} onChange={e => setS1v(e.target.value)} />
-                <span className="score-label">Visit.</span>
+                <span className="score-label">{bloqueado ? "Opon." : "Visit."}</span>
               </div>
             </div>
 
             <div className="form-group">
               <label className="form-label">Set 2</label>
               <div className="score-row">
-                <span className="score-label">Local</span>
+                <span className="score-label">{bloqueado ? "Tú" : "Local"}</span>
                 <input className="score-input" type="number" min="0" max="7" value={s2l} onChange={e => setS2l(e.target.value)} />
                 <span className="score-sep">–</span>
                 <input className="score-input" type="number" min="0" max="7" value={s2v} onChange={e => setS2v(e.target.value)} />
-                <span className="score-label">Visit.</span>
+                <span className="score-label">{bloqueado ? "Opon." : "Visit."}</span>
               </div>
             </div>
 
@@ -193,11 +234,11 @@ function ResultadoModal({ grupos, partidos, temporada, open, onClose, onGuardado
               <div className="form-group">
                 <label className="form-label">Super Tiebreak (10 pts)</label>
                 <div className="score-row">
-                  <span className="score-label">Local</span>
+                  <span className="score-label">{bloqueado ? "Tú" : "Local"}</span>
                   <input className="score-input" type="number" min="0" max="99" value={stbl} onChange={e => setStbl(e.target.value)} style={{ width: 60 }} />
                   <span className="score-sep">–</span>
                   <input className="score-input" type="number" min="0" max="99" value={stbv} onChange={e => setStbv(e.target.value)} style={{ width: 60 }} />
-                  <span className="score-label">Visit.</span>
+                  <span className="score-label">{bloqueado ? "Opon." : "Visit."}</span>
                 </div>
               </div>
             )}
@@ -306,7 +347,7 @@ function BracketCategoria({ cat, partidos, grupos, irAClasificacion }) {
 }
 
 // ─── Modal de registro de partido de playoff ────────────────────────────────
-function PlayoffRegistroModal({ grupos, partidos, temporada, open, onClose, onGuardado }) {
+function PlayoffRegistroModal({ grupos, partidos, temporada, open, onClose, onGuardado, currentJugador }) {
   const [paso, setPaso] = useState(1);     // 1 = elegir partido, 2 = introducir score
   const [matchSel, setMatchSel] = useState(null);
   const [catSel, setCatSel] = useState(null);
@@ -327,10 +368,14 @@ function PlayoffRegistroModal({ grupos, partidos, temporada, open, onClose, onGu
 
   // Partidos de playoff pendientes por categoría (excluye final si semis no terminadas)
   const data = calcPlayoffs(grupos, partidos);
+  const miNombre = currentJugador ? (currentJugador.Nombre || currentJugador.NombreCompleto || "") : null;
   const pendientes = data.flatMap(d =>
     d.matches
       .filter(m => m.disponible !== false && (!m.partido || m.partido.estado !== "jugado"))
       .map(m => ({ ...m, cat: d.cat }))
+  ).filter(m =>
+    // Si hay jugador identificado, solo sus partidos; si no (admin), todos
+    !miNombre || m.j1 === miNombre || m.j2 === miNombre
   );
 
   const w1 = n(s1l) != null && n(s1v) != null ? (n(s1l) > n(s1v) ? "l" : "v") : null;
@@ -595,7 +640,7 @@ function PlayoffResumen({ grupos, partidos }) {
 }
 
 // ─── Página principal ───────────────────────────────────────────────────────
-export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onCambioTemporada }) {
+export default function Historial({ irAClasificacion, isAdmin, currentJugador, temporadaSel, onCambioTemporada }) {
   const { grupos } = useGrupos();
   const [partidos, setPartidos] = useState([]);
   const [config, setConfig] = useState(null);
@@ -662,27 +707,29 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
     <div className="page-content">
       <h1 className="page-title">Inicio</h1>
 
-      {/* Banner registrar resultado — solo admin */}
-      {isAdmin && <button className="resultado-banner" onClick={() => config?.playoffs_activos ? setModalPlayoff(true) : setModalResultado(true)}>
-        <div className="resultado-banner-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="16" />
-            <line x1="8" y1="12" x2="16" y2="12" />
+      {/* Banner registrar resultado — admin O jugador identificado */}
+      {(isAdmin || currentJugador) && (
+        <button className="resultado-banner" onClick={() => config?.playoffs_activos ? setModalPlayoff(true) : setModalResultado(true)}>
+          <div className="resultado-banner-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </div>
+          <div className="resultado-banner-text">
+            <span className="resultado-banner-title">
+              {config?.playoffs_activos ? "🏆 Registrar playoff" : "Registrar resultado"}
+            </span>
+            <span className="resultado-banner-sub">
+              {config?.playoffs_activos ? "Apunta el resultado del playoff" : "Apunta el marcador de tu partido"}
+            </span>
+          </div>
+          <svg className="resultado-banner-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
           </svg>
-        </div>
-        <div className="resultado-banner-text">
-          <span className="resultado-banner-title">
-            {config?.playoffs_activos ? "🏆 Registrar playoff" : "Registrar resultado"}
-          </span>
-          <span className="resultado-banner-sub">
-            {config?.playoffs_activos ? "Apunta el resultado del playoff" : "Apunta el marcador de tu partido"}
-          </span>
-        </div>
-        <svg className="resultado-banner-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </button>}
+        </button>
+      )}
 
       {loading && <div className="loading-text">Cargando...</div>}
       {error && <div className="alert alert-error">{error}</div>}
@@ -814,6 +861,7 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
         open={modalResultado}
         onClose={() => setModalResultado(false)}
         onGuardado={handleGuardado}
+        currentJugador={isAdmin ? null : currentJugador}
       />
 
       <PlayoffRegistroModal
@@ -823,6 +871,7 @@ export default function Historial({ irAClasificacion, isAdmin, temporadaSel, onC
         open={modalPlayoff}
         onClose={() => setModalPlayoff(false)}
         onGuardado={() => { setModalPlayoff(false); handleGuardado(); }}
+        currentJugador={isAdmin ? null : currentJugador}
       />
     </div>
   );

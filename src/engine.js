@@ -6,10 +6,16 @@ export function calcPuntos(p) {
   return { ganador: p.visitante, ptsG: setsL === 0 ? 4 : 3, ptsP: setsL === 0 ? 1 : 2, setsG: setsV, setsP: setsL };
 }
 
+function esLiga(p) {
+  // Solo cuentan partidos de liga regular (no playoffs, no amistosos)
+  const fase = (p.fase ?? "liga").toLowerCase();
+  return fase === "liga" || fase === "";
+}
+
 function ptsDirectos(jugadores, partidos, grupo) {
   const pts = {};
   jugadores.forEach(j => { pts[j] = {}; jugadores.forEach(k => pts[j][k] = 0); });
-  partidos.filter(p => p.grupo === grupo && p.estado === "jugado").forEach(p => {
+  partidos.filter(p => p.grupo === grupo && p.estado === "jugado" && esLiga(p)).forEach(p => {
     if (!jugadores.includes(p.local) || !jugadores.includes(p.visitante)) return;
     const r = calcPuntos(p);
     const perdedor = r.ganador === p.local ? p.visitante : p.local;
@@ -26,7 +32,7 @@ export function calcClasificacion(jugadores, partidos, grupo) {
     stats[j] = { jugador: j, pl: 0, w: 0, l: 0, pts: 0, gplus: 0, gminus: 0, splus: 0, sminus: 0 };
   });
 
-  partidos.filter(p => p.grupo === grupo && p.estado === "jugado" && jugadores.includes(p.local) && jugadores.includes(p.visitante)).forEach(p => {
+  partidos.filter(p => p.grupo === grupo && p.estado === "jugado" && esLiga(p) && jugadores.includes(p.local) && jugadores.includes(p.visitante)).forEach(p => {
     const r = calcPuntos(p);
     const perdedor = r.ganador === p.local ? p.visitante : p.local;
     const gl = (p.s1l || 0) + (p.s2l || 0) + (p.stbl || 0);
@@ -150,33 +156,68 @@ export function calcPlayoffs(grupos, partidos) {
     const jugA = grupos[gA] || [], jugB = grupos[gB] || [];
     const expA = (jugA.length * (jugA.length - 1)) / 2;
     const expB = (jugB.length * (jugB.length - 1)) / 2;
-    const jugadosA = partidos.filter(p => p.grupo === gA && p.estado === "jugado").length;
-    const jugadosB = partidos.filter(p => p.grupo === gB && p.estado === "jugado").length;
+    const jugadosA = partidos.filter(p => p.grupo === gA && p.estado === "jugado" && esLiga(p)).length;
+    const jugadosB = partidos.filter(p => p.grupo === gB && p.estado === "jugado" && esLiga(p)).length;
     const completo = expA > 0 && expB > 0 && jugadosA >= expA && jugadosB >= expB;
     const clasiA = calcClasificacion(jugA, partidos, gA);
     const clasiB = calcClasificacion(jugB, partidos, gB);
     const nA = clasiA.length, nB = clasiB.length;
 
-    const promovidos = [clasiA[0], clasiB[0]].filter(Boolean).map(r => r.jugador);
-    // Bronce is the lowest category — no relegation
-    const descendidos = cat === "Bronce" ? [] :
-      [clasiA[nA - 1], clasiB[nB - 1]].filter(Boolean).map(r => r.jugador).filter(j => !promovidos.includes(j));
+    // Busca el partido de playoff entre j1 y j2: por grupoKey canónico O por fase=playoffs
+    function buscarPartidoPO(grupoKey, j1, j2) {
+      if (!j1 || !j2 || j1 === "?" || j2 === "?") return null;
+      return partidos.find(p =>
+        ((p.local === j1 && p.visitante === j2) || (p.local === j2 && p.visitante === j1)) &&
+        (p.grupo === grupoKey || (p.fase ?? "") === "playoffs")
+      ) || null;
+    }
 
     const matches = [];
-    if (nA >= 2 && nB >= 2) {
+
+    if (cat === "Platino" && nA >= 2 && nB >= 2) {
+      // ── Final 4 (solo Platino): 1A vs 2B · 2A vs 1B · Final ──
+      const j1s1 = clasiA[0].jugador, j2s1 = clasiB[1].jugador;
+      const j1s2 = clasiA[1].jugador, j2s2 = clasiB[0].jugador;
+
+      const partidoS1 = buscarPartidoPO(`${cat}-F4-S1`, j1s1, j2s1);
+      const partidoS2 = buscarPartidoPO(`${cat}-F4-S2`, j1s2, j2s2);
+
+      const ganadorS1 = partidoS1?.estado === "jugado" ? (partidoS1.Ganador ?? null) : null;
+      const ganadorS2 = partidoS2?.estado === "jugado" ? (partidoS2.Ganador ?? null) : null;
+      const partidoFinal = buscarPartidoPO(`${cat}-F4-F`, ganadorS1, ganadorS2);
+
+      matches.push({ tipo: "semi1", j1: j1s1, gJ1: gA, j2: j2s1, gJ2: gB, grupoKey: `${cat}-F4-S1`, grupoPartido: "F4-S1", partido: partidoS1, disponible: true });
+      matches.push({ tipo: "semi2", j1: j1s2, gJ1: gA, j2: j2s2, gJ2: gB, grupoKey: `${cat}-F4-S2`, grupoPartido: "F4-S2", partido: partidoS2, disponible: true });
+      matches.push({ tipo: "final", j1: ganadorS1 || "?", j2: ganadorS2 || "?", grupoKey: `${cat}-F4-F`, grupoPartido: "F4-F", partido: partidoFinal, disponible: !!(ganadorS1 && ganadorS2) });
+    } else if (cat !== "Platino" && nA >= 2 && nB >= 2) {
+      // ── Playoff ascenso (resto de categorías): 2A vs 2B ──
       const grupoKey = `${cat}-PO-Asc`;
       const j1 = clasiA[1].jugador, j2 = clasiB[1].jugador;
-      const partido = partidos.find(p => p.grupo === grupoKey && ((p.local === j1 && p.visitante === j2) || (p.local === j2 && p.visitante === j1))) || null;
-      matches.push({ tipo: "ascenso", j1, gJ1: gA, j2, gJ2: gB, grupoKey, grupoPartido: "PO-Asc", partido });
+      const partido = buscarPartidoPO(grupoKey, j1, j2);
+      matches.push({ tipo: "ascenso", j1, gJ1: gA, j2, gJ2: gB, grupoKey, grupoPartido: "PO-Asc", partido, disponible: true });
     }
-    // Bronce has no relegation playoff either
+
+    // ── Playoff descenso (todas excepto Bronce, incluida Platino) ──
     if (nA > 3 && nB > 3 && cat !== "Bronce") {
       const grupoKey = `${cat}-PO-Des`;
       const j1 = clasiA[nA - 2].jugador, j2 = clasiB[nB - 2].jugador;
-      const partido = partidos.find(p => p.grupo === grupoKey && ((p.local === j1 && p.visitante === j2) || (p.local === j2 && p.visitante === j1))) || null;
-      matches.push({ tipo: "descenso", j1, gJ1: gA, j2, gJ2: gB, grupoKey, grupoPartido: "PO-Des", partido });
+      const partido = buscarPartidoPO(grupoKey, j1, j2);
+      matches.push({ tipo: "descenso", j1, gJ1: gA, j2, gJ2: gB, grupoKey, grupoPartido: "PO-Des", partido, disponible: true });
     }
 
-    return { cat, gA, gB, jugA, jugB, expA, expB, jugadosA, jugadosB, completo, clasiA, clasiB, matches, promovidos, descendidos };
+    // Platino no tiene ascensos (es la categoría más alta)
+    const promovidos = cat === "Platino" ? [] :
+      [clasiA[0], clasiB[0]].filter(Boolean).map(r => r.jugador);
+    const descendidos = cat === "Bronce" ? [] :
+      [clasiA[nA - 1], clasiB[nB - 1]].filter(Boolean).map(r => r.jugador).filter(j => !promovidos.includes(j));
+
+    // Campeón de Platino (ganador de la final)
+    const campeon = cat === "Platino"
+      ? (matches.find(m => m.tipo === "final")?.partido?.estado === "jugado"
+          ? (matches.find(m => m.tipo === "final").partido.Ganador ?? null)
+          : null)
+      : null;
+
+    return { cat, gA, gB, jugA, jugB, expA, expB, jugadosA, jugadosB, completo, clasiA, clasiB, matches, promovidos, descendidos, campeon };
   });
 }

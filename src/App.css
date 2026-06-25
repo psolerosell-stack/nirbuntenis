@@ -51,6 +51,7 @@ html, body, #root {
   letter-spacing: -0.3px;
   margin-bottom: 14px;
   color: var(--text1);
+  padding-right: 44px; /* espacio para el avatar fijo */
 }
 
 /* ── Bottom nav — floating pill style ── */
@@ -101,6 +102,268 @@ html, body, #root {
 }
 
 .nav-tab svg { display: block; }
+
+/* ── Avatar button (fixed top-right) ── */
+.avatar-btn {
+  position: fixed;
+  top: 13px;
+  right: 13px;
+  z-index: 95;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.avatar-btn:hover { border-color: var(--accent); transform: scale(1.05); }
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar-btn-initial {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+/* ── Profile overlay ── */
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 150;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+.profile-overlay.open { opacity: 1; pointer-events: all; }
+
+/* ── Profile drawer ── */
+.profile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 85%;
+  max-width: 380px;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+.profile-drawer.open { transform: translateX(0); }
+
+.profile-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 40px;
+}
+
+/* Close button */
+.profile-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: var(--bg3);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+  z-index: 1;
+  padding: 0;
+  transition: background 0.15s;
+}
+.profile-close-btn:hover { background: var(--border); }
+
+/* ── Sections ── */
+.profile-section {
+  padding: 22px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.profile-section:last-child { border-bottom: none; }
+
+.profile-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text2);
+  margin-bottom: 14px;
+}
+
+/* ── Identity ── */
+.profile-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 52px;
+  text-align: center;
+}
+
+.profile-avatar-lg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  margin-bottom: 14px;
+  object-fit: cover;
+  display: block;
+}
+.profile-avatar-initial {
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.profile-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text1);
+  margin-bottom: 3px;
+}
+.profile-email {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+.profile-player-badge {
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--bg3);
+  border-radius: 20px;
+  padding: 4px 12px;
+  margin-bottom: 16px;
+}
+.profile-signout-btn {
+  padding: 8px 22px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 83, 80, 0.35);
+  background: rgba(239, 83, 80, 0.08);
+  color: #ef5350;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.profile-signout-btn:hover { background: rgba(239, 83, 80, 0.18); }
+
+/* ── Stats ── */
+.profile-stats-row {
+  display: flex;
+  gap: 8px;
+}
+.profile-stat {
+  flex: 1;
+  background: var(--bg3);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.profile-stat-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text1);
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.profile-stat-label {
+  font-size: 10px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.profile-loading {
+  font-size: 13px;
+  color: var(--text2);
+  padding: 6px 0;
+}
+
+/* ── Last matches ── */
+.profile-match-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.profile-match-row:last-child { border-bottom: none; }
+
+.profile-match-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.profile-match-row.win  .profile-match-badge { background: rgba(76,175,80,0.15); color: #4caf50; }
+.profile-match-row.loss .profile-match-badge { background: rgba(239,83,80,0.15); color: #ef5350; }
+
+.profile-match-info { flex: 1; min-width: 0; }
+.profile-match-rival {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-match-score { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.profile-match-date  { font-size: 11px; color: var(--text2); flex-shrink: 0; }
+
+/* ── Position ── */
+.profile-pos-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--bg3);
+  border-radius: 14px;
+  padding: 16px;
+}
+.profile-pos-num {
+  font-size: 52px;
+  font-weight: 900;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.profile-pos-detail { display: flex; flex-direction: column; gap: 3px; }
+.profile-pos-grupo { font-size: 12px; color: var(--text2); }
+.profile-pos-pts   { font-size: 16px; font-weight: 700; color: var(--text1); }
+.profile-pos-sub   { font-size: 12px; color: var(--text2); }
+
+.profile-stat--pos,
+.profile-stat--ns  { padding: 14px 10px; }
+
+.profile-pendiente-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--bg3);
+  border-radius: 10px;
+}
 
 /* ── Pills ── */
 .pills, .pills-row {

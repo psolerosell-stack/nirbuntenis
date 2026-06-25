@@ -159,7 +159,8 @@ export default function Clasificacion({ navTo, irAPerfil, temporadaSel }) {
 
   // Usa la temporada seleccionada globalmente (o la activa del config como fallback)
   const temporadaEfectiva = temporadaSel ?? config?.temporada ?? "";
-  const esTemporadaActiva = !temporadaEfectiva || temporadaEfectiva === config?.temporada;
+  // Si config aún no cargó, asumir temporada activa para no usar gruposFromPartidos con lista vacía
+  const esTemporadaActiva = !config || !temporadaEfectiva || temporadaEfectiva === config?.temporada;
 
   const partidosFiltrados = temporadaEfectiva
     ? partidos.filter(p => !p.temporada || p.temporada === temporadaEfectiva)

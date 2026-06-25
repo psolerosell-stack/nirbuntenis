@@ -9,7 +9,10 @@ import PerfilJugador from "./pages/PerfilJugador.jsx";
 import LoginPage from "./components/LoginPage.jsx";
 import ProfilePanel from "./components/ProfilePanel.jsx";
 import { useAuth } from "./hooks/useAuth.js";
-import { fetchConfig } from "./api.js";
+import { fetchConfig, fetchJugadores } from "./api.js";
+
+// Email de respaldo para admins mientras cargan los datos del Sheet
+const ADMIN_EMAIL_FALLBACK = "psolerosell@gmail.com";
 
 const TABS = [
   {
@@ -73,7 +76,7 @@ const TABS = [
 const DEMO_PARAM = new URLSearchParams(window.location.search).get("demo") === "1";
 
 export default function App() {
-  const { user, isAdmin, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, isAdmin: isAdminFallback, loading, signInWithGoogle, signOut } = useAuth();
   const [tab, setTab] = useState("historial");
   const [clasiFiltro, setClasiFiltro] = useState({ cat: "Platino", grupo: "A", seq: 0 });
   const [perfilActivo, setPerfilActivo] = useState(null); // { jugador: string }
@@ -84,6 +87,9 @@ export default function App() {
   // null = cargando; string = temporada seleccionada (default = activa en Config)
   const [temporadaSel, setTemporadaSel] = useState(null);
 
+  // ── Lista de jugadores del sheet (para identificar al usuario logueado) ──
+  const [jugadoresList, setJugadoresList] = useState([]);
+
   useEffect(() => {
     const controller = new AbortController();
     fetchConfig(controller.signal)
@@ -93,6 +99,24 @@ export default function App() {
       .catch(() => {});
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchJugadores(controller.signal)
+      .then(json => { if (Array.isArray(json)) setJugadoresList(json); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  // Jugador del sheet que coincide con el usuario logueado (por email)
+  const currentJugador = (user?.email && jugadoresList.length > 0)
+    ? (jugadoresList.find(j => (j.Email || "").toLowerCase() === user.email.toLowerCase()) ?? null)
+    : null;
+
+  // isAdmin: viene del campo Rol del sheet; mientras carga, fallback al email hardcodeado
+  const isAdmin = jugadoresList.length > 0
+    ? currentJugador?.Rol === "admin"
+    : (isAdminFallback || user?.email === ADMIN_EMAIL_FALLBACK);
 
   function irAClasificacion(cat, grupo) {
     setClasiFiltro({ cat, grupo, seq: Date.now() });
@@ -108,7 +132,7 @@ export default function App() {
   }
 
   const PAGES = {
-    historial:     <Historial irAClasificacion={irAClasificacion} isAdmin={isAdmin} temporadaSel={temporadaSel} onCambioTemporada={setTemporadaSel} />,
+    historial:     <Historial irAClasificacion={irAClasificacion} isAdmin={isAdmin} currentJugador={isAdmin ? null : currentJugador} temporadaSel={temporadaSel} onCambioTemporada={setTemporadaSel} />,
     clasificacion: <Clasificacion navTo={clasiFiltro} irAPerfil={irAPerfil} temporadaSel={temporadaSel} />,
     partidos:      <Partidos isAdmin={isAdmin} temporadaSel={temporadaSel} />,
     jugadores:     <Jugadores irAPerfil={irAPerfil} />,
